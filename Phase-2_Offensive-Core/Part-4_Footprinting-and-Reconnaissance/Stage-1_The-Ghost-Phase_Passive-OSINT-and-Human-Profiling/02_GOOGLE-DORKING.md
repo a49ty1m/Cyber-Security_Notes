@@ -1,12 +1,12 @@
 # Search Engine Hacking / Google Dorking
 
-**Roadmap position:** Part 4 → Footprinting & Reconnaissance → Stage 1 — Passive OSINT & Human Profiling
+**Roadmap:** Part 4: Footprinting and Reconnaissance → Stage 1: The "Ghost" Phase (Passive OSINT & Human Profiling)
 
 **Important correction upfront:** Google Dorking does **not** bypass authentication. You are querying information a search engine has already indexed. The security issue is that the indexed information may reveal something the organization never intended to be discoverable.
 
 ---
 
-# Section 1 — What It Is and Where It Sits
+# Section 1 — What it is and where it sits
 
 **Search engine hacking is the deliberate use of search-engine operators to reduce a massive index into a small set of target-specific results that reveal an organization's public attack surface — documents, portals, technologies, and historical information.**
 
@@ -51,7 +51,7 @@ You discovered the path **before actively probing infrastructure**.
 
 ---
 
-# Section 2 — How Attackers Actually Use This
+# Section 2 — How attackers actually use this
 
 ## 2.1 What attackers look for
 
@@ -348,7 +348,7 @@ Is it vulnerable?
 
 ---
 
-# Section 3 — Core Concepts and Terminology
+# Section 3 — Core concepts and terminology
 
 | Term | Meaning |
 | ---- | ------- |
@@ -390,7 +390,7 @@ This formula is transferable to every target. Memorizing 500 dorks is not.
 
 ---
 
-# Section 4 — Tools and Commands
+# Section 4 — Tools and commands
 
 Google Dorking's primary tool is a **search engine** — you don't need Kali for the core technique.
 
@@ -441,7 +441,7 @@ The author field and creator app aren't a vulnerability. They are **another inte
 
 ---
 
-# Section 5 — Defender Detection
+# Section 5 — Defender detection
 
 **Google Dorking itself generally does not create a server-side detection event.** When you run `site:example.com filetype:pdf`, Google receives the query. `example.com` may receive **no request whatsoever**. There is no "Google Dork detected" event in the target's web logs.
 
@@ -510,7 +510,7 @@ Monitor subsequent active reconnaissance
 
 ---
 
-# Section 6 — Lab Task
+# Section 6 — Lab task
 
 **Platform:** TryHackMe — [Google Dorking](https://tryhackme.com/room/googledorking)
 
@@ -548,7 +548,7 @@ git commit -m "feat(recon): google dorking session — tryhackme.com"
 
 ---
 
-# Section 7 — Common Mistakes
+# Section 7 — Common mistakes
 
 **1. Treating every result as a vulnerability**
 
@@ -612,7 +612,7 @@ Don't turn a learning exercise into finding someone's credentials. Use TryHackMe
 
 ---
 
-# Section 8 — Move-On Gate
+# Section 8 — Move-on gate
 
 1. Given an authorized domain, construct queries using `site:`, `filetype:`, `intitle:`, `inurl:`, exact phrases, and exclusions to answer 5 different reconnaissance questions — **without consulting a cheat sheet**.
 

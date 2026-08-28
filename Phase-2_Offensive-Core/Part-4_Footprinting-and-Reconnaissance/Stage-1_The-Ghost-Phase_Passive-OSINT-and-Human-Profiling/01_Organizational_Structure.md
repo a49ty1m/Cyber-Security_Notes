@@ -1,12 +1,12 @@
 # Organizational Hierarchy — Audience Profiling
 
-**Roadmap position:** Part 4 → Footprinting & Reconnaissance → Stage 1: Ghost Phase → Passive OSINT & Human Profiling
+**Roadmap:** Part 4: Footprinting and Reconnaissance → Stage 1: The "Ghost" Phase (Passive OSINT & Human Profiling)
 
 **The important correction up front:** This is **not** about collecting as many employee names as possible. That is low-quality OSINT. The real objective is to reconstruct **who has access to what, who influences whom, which roles are trusted, which teams expose useful information, and where organizational privilege and trust converge**.
 
 ---
 
-# Section 1 — What It Is and Where It Sits
+# Section 1 — What it is and where it sits
 
 Organizational hierarchy profiling uses publicly available information to reconstruct an organization's people, departments, responsibilities, technology ownership, and trust relationships. You are turning scattered data — company pages, job descriptions, conference talks, GitHub activity, press releases, engineering blogs — into an **attack-relevant map**.
 
@@ -56,7 +56,7 @@ Later: cloud enumeration
 
 ---
 
-# Section 2 — How Attackers Actually Use This
+# Section 2 — How attackers actually use this
 
 ## 2.1 What are they looking for?
 
@@ -452,7 +452,7 @@ Understanding this before you have any access tells you where a foothold might l
 
 ---
 
-# Section 3 — Core Concepts and Terminology
+# Section 3 — Core concepts and terminology
 
 | Term | Meaning |
 | ---- | ------- |
@@ -468,7 +468,7 @@ Understanding this before you have any access tells you where a foothold might l
 
 ---
 
-# Section 4 — Tools and Commands
+# Section 4 — Tools and commands
 
 | Tool | Command | What it finds | When to use |
 | ---- | ------- | ------------- | ----------- |
@@ -546,7 +546,7 @@ These aren't organizational-hierarchy tools themselves. They become useful **aft
 
 ---
 
-# Section 5 — Defender Detection
+# Section 5 — Defender detection
 
 **Passive OSINT usually does not generate a useful event in the target's SIEM.** If you read a public company webpage, the target generally cannot see it in Microsoft Defender. That's why passive reconnaissance is powerful.
 
@@ -590,7 +590,7 @@ Once you begin probing systems or interacting with personnel, you've crossed int
 
 ---
 
-# Section 6 — Lab Task
+# Section 6 — Lab task
 
 **Platform:** TryHackMe — [Red Team Recon](https://tryhackme.com/room/redteamrecon)
 
@@ -631,7 +631,7 @@ Don't commit personal data unnecessarily. Store only what's needed to demonstrat
 
 ---
 
-# Section 7 — Common Mistakes
+# Section 7 — Common mistakes
 
 **1. Collecting names instead of relationships**
 Bad: 73 employee names with no context. Good: `Sarah → IAM Administrator → Entra ID → Identity infrastructure`. The chain is the value — names without context are worthless.
@@ -670,7 +670,7 @@ Your documentation discipline matters as much as your tool knowledge.
 
 ---
 
-# Section 8 — Move-On Gate
+# Section 8 — Move-on gate
 
 1. **Given only a company name and domain**, produce Leadership / Technical departments / Technology ownership / Relevant roles using only passive sources — without notes.
 

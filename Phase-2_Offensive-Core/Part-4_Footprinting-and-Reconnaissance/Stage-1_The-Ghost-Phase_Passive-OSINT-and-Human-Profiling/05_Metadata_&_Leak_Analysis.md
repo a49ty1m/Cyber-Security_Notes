@@ -201,6 +201,138 @@ Candidate current asset
 
 The next phase can then investigate the candidate through appropriate technical enumeration.
 
+## 2.6 GitHub dorking and automated secret detection
+
+GitHub and public code repositories are the most productive source of leaked secrets in modern environments. Developers accidentally commit API keys, database credentials, private keys, and internal hostnames to public repositories — often in configuration files, environment variables, test files, or commit history that was never cleaned.
+
+**GitHub advanced search operators for manual dorking:**
+
+```text
+# Search organization's repositories for specific secret patterns
+org:corp-target password
+org:corp-target api_key
+org:corp-target secret
+org:corp-target token
+org:corp-target "DB_PASSWORD"
+org:corp-target "AWS_SECRET_ACCESS_KEY"
+org:corp-target "BEGIN RSA PRIVATE KEY"
+org:corp-target "PRIVATE KEY"
+org:corp-target filename:.env
+org:corp-target filename:config.yaml password
+org:corp-target filename:docker-compose.yml
+org:corp-target filename:.travis.yml
+org:corp-target filename:Jenkinsfile
+
+# Search by file extension for sensitive file types
+org:corp-target extension:pem private
+org:corp-target extension:pfx
+org:corp-target extension:key RSA
+
+# Search by filename patterns
+org:corp-target filename:id_rsa
+org:corp-target filename:secrets.yml
+org:corp-target filename:credentials.json
+```
+
+GitHub code search indexes the current state of files in public repositories AND some historical commit content. A developer who committed a key and then deleted it in the next commit may still have that key indexed in GitHub's search for a period.
+
+**trufflehog — automated secret detection across git history:**
+
+```bash
+# Install
+$ pip install trufflehog3
+# Or use the Go version (faster):
+$ go install github.com/trufflesecurity/trufflehog/v3@latest
+
+# Scan a GitHub organization's public repos
+$ trufflehog github --org corp-target --only-verified
+
+# Scan a specific repository including full git history
+$ trufflehog git https://github.com/corp-target/webapp.git
+
+# Example output:
+Found verified result  🔑🔑
+Detector Type: AWS
+Decoder Type: PLAIN
+Raw: AKIAIOSFODNN7EXAMPLE           ← AWS access key
+Commit: a1b2c3d4...
+File: config/settings.py
+Line: 42
+Timestamp: 2023-08-15
+
+# Scan for GitHub tokens, Slack webhooks, Stripe keys, etc.
+$ trufflehog github --org corp-target --include-detectors all
+```
+
+**gitleaks — alternative secret scanner with SARIF output:**
+
+```bash
+$ go install github.com/gitleaks/gitleaks/v8@latest
+
+# Scan a cloned repository
+$ git clone https://github.com/corp-target/webapp.git /tmp/webapp
+$ gitleaks detect --source /tmp/webapp/ --report-format sarif --report-path leaks.sarif
+
+# Scan with verbose output
+$ gitleaks detect --source /tmp/webapp/ -v
+
+Finding:  api_key = "sk_live_abc123..."
+Secret:   sk_live_abc123...
+RuleID:   stripe-access-token
+Match:    api_key = "sk_live_abc123..."
+File:     payments/config.py
+Line:     15
+Commit:   b2c3d4e5
+Date:     2023-11-01
+Author:   dev@corp-target.com   ← developer email for social engineering
+```
+
+A verified active secret (one that authenticates against a live API) is a critical finding that terminates the need for further recon — it provides direct authenticated access to a target system. AWS keys enable cloud console access and data extraction. Stripe live keys provide financial transaction access.
+
+## 2.7 FOCA for bulk document metadata extraction
+
+FOCA (Fingerprinting Organizations with Collected Archives) is a Windows tool that automates bulk document discovery and metadata extraction from a target domain. It queries Google, Bing, and DuckDuckGo for indexed documents (PDF, DOCX, XLSX, PPTX, ODT, XLS) belonging to the target domain, downloads them, and extracts metadata from all of them in a single pass.
+
+```text
+FOCA Workflow:
+1. Create new project → enter target domain (corp-target.com)
+2. Search engines tab → select Google + Bing + DuckDuckGo
+3. Start search → FOCA queries for: site:corp-target.com filetype:pdf, docx, xlsx, etc.
+4. Download all discovered documents automatically
+5. Extract tab → parse metadata from all downloaded files
+6. Network tab → review extracted internal IPs, hostnames, and usernames
+7. Users tab → review all extracted author names and usernames
+```
+
+FOCA consolidates the manual `exiftool` approach — instead of downloading and processing files one by one, it finds, downloads, and parses hundreds of documents in one operation. The output includes:
+- Internal IP addresses embedded in document metadata
+- Internal hostnames (server names where files were created/saved)
+- Username list (all `Author` and `Last Saved By` fields across all files)
+- Software version list (all `Creator Tool` entries)
+- Timestamp patterns (working hours, time zones)
+
+**Linux alternative workflow (when FOCA is unavailable):**
+
+```bash
+# Find all indexed documents for the domain
+$ curl -s "https://www.google.com/search?q=site:corp-target.com+filetype:pdf" \
+  | grep -oP 'https://[^"]+\.pdf' | sort -u > pdf_urls.txt
+
+# Download all found documents
+$ wget -i pdf_urls.txt -P /tmp/docs/ -q
+
+# Bulk metadata extraction
+$ exiftool /tmp/docs/*.pdf | grep -E "Author|Creator|Producer|IP|Server" | sort -u
+
+Author: John Smith
+Author: j.smith
+Creator Tool: Microsoft Word 2016 (Windows)
+Creator Tool: LibreOffice 6.4 (Linux)
+Producer: GPL Ghostscript 9.52
+```
+
+Username `j.smith` extracted from 14 documents confirms the email format `j.smith@corp-target.com`. The Linux LibreOffice `Creator Tool` entry confirms a Linux workstation environment alongside the Windows Microsoft Office environment.
+
 # Section 3 — Core concepts and terminology
 
 | Term                       | Meaning                                                                                            |

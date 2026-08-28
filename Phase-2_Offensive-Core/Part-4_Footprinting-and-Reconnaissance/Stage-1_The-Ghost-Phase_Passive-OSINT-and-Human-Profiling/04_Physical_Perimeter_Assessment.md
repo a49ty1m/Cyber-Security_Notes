@@ -1,4 +1,5 @@
 # Physical Perimeter Assessment
+
 **Roadmap:** Part 4: Footprinting and Reconnaissance → Stage 1: The "Ghost" Phase (Passive OSINT & Human Profiling)
 
 # Section 1 — What it is and where it sits
@@ -174,27 +175,85 @@ The value comes from **correlation** with earlier OSINT.
 
 ## 2.5 Where results feed next
 
-Physical observations can produce:
+Physical observations feed the technical phases directly. Every physical OSINT finding maps to a technical hypothesis:
 
 ```text
-Location
-  ↓
-Entrance / workspace
-  ↓
-Control weakness
-  ↓
-Asset or information exposed
-  ↓
-Technical hypothesis
-  ↓
-Authorized validation
+Physical finding                  → Technical follow-on
+────────────────────────────────────────────────────────
+Visible technology brand (Cisco)  → Version-specific CVE search in Phase 3
+Badge reader model (HID, Lenel)   → Physical access control platform identification
+Discarded org chart               → Hierarchy + target names for social engineering
+WiFi SSID visible on device       → Wireless network for Phase 3 active recon
+Printed IP range on whiteboard    → Internal network segmentation hypothesis
+Delivery personnel routine        → Timing window for physical access attempt
 ```
 
-For example, a publicly visible technology name can corroborate an earlier technology-stack hypothesis.
+A discarded organizational chart clarifies reporting relationships and identifies who has administrator-level access. A visible badge policy explains how physical identity maps to logical identity (username format, domain structure). A publicly readable technology label corroborates an earlier technology-stack hypothesis from job listings or OSINT.
 
-A discarded organizational chart can clarify reporting relationships discovered during passive OSINT.
+The output of physical perimeter assessment is a list of observations with corroborating evidence, not a list of "things I saw." Each observation must connect to a technical or social engineering implication to be reportable.
 
-A visible badge policy can explain how physical identity maps to logical identity.
+**Correlating physical finds with prior OSINT:** The real power of physical perimeter assessment is not standalone discovery — it is corroboration. A document recovered from a dumpster that mentions an internal hostname (`FILESERVER01`) is far more valuable when combined with a PTR record from Stage 2 that resolves to the same name. A visible network equipment brand (Juniper on the building's comms room door label) confirms what a Shodan query returned for the organization's IP space. Physical intelligence validates and enriches digital intelligence, and vice versa.
+
+```text
+Walkthrough sequence:
+1. OSINT hypothesis:  "They likely use VMware based on job listings for vSphere admins."
+2. Physical confirm:  Server room vent visible from parking — VMware logo on visible equipment.
+3. Digital confirm:   Shodan shows ESXi management port 443 on 203.0.113.8, confirmed vendor.
+4. Combined finding:  VMware ESXi version X exposed on management interface at specific IP.
+```
+
+## 2.6 Satellite and aerial imagery OSINT
+
+Satellite imagery from Google Earth, Bing Maps, Google Maps, and Apple Maps provides overhead views of target facilities that are public, high-resolution, and timestamped. This is fully passive — requesting satellite imagery generates no event on the target's side.
+
+**What overhead imagery reveals:**
+
+- **Roof infrastructure:** HVAC units, satellite dishes, antennas, generator exhaust ports, and raised floor ventilation grills identify critical infrastructure locations. Server rooms require significant HVAC — large rooftop HVAC clusters above a specific section of a building indicate a data center or server room below.
+- **Parking lot behavior:** Executive vehicle patterns, shift-change timing (how many cars arrive/depart at specific hours), delivery bay activity, and security vehicle presence.
+- **Physical perimeter:** Fencing type and coverage, security cameras mounted on exterior walls, guard post locations, loading docks, emergency exits, and secondary entrances not visible from street level.
+- **Adjacent facilities:** What organizations share the building, parking, or access roads. Adjacent businesses may share physical access points that reduce security assumptions.
+- **Historical imagery (Google Earth Pro / Wayback):** Google Earth Pro allows time-slider navigation through historical satellite images. A facility that has added fencing, cameras, or guard infrastructure in recent years was likely reacting to a previous incident. Construction visible in old imagery may reveal new building wings, underground cable runs, or access modifications.
+
+```text
+Google Earth time-slider workflow:
+1. Open Google Earth Pro (free)
+2. Navigate to target facility address
+3. Click the clock icon → enable historical imagery
+4. Scroll timeline back 5-10 years
+5. Document: fence changes, HVAC additions, new structures, parking patterns
+```
+
+**Geospatial OSINT tools:**
+- **Google Earth Pro** (free, Windows/Mac/Linux) — historical imagery, measurement tools, GPS coordinate export
+- **Bing Maps Bird's Eye** — oblique 45-degree aerial photography that provides a near-3D view of building facades and roofs not visible from straight overhead
+- **Sentinel Hub EO Browser** (`apps.sentinel-hub.com`) — free ESA satellite imagery, updated roughly every 5 days for cloudy/clear passes; useful for large industrial or campus facilities
+- **SkyFi / Planet Labs** (commercial) — tasked satellite imagery on demand; for high-priority targets in critical infrastructure sectors
+
+## 2.7 Social media as physical intelligence
+
+Employees and visitors post photographs, videos, and check-ins that inadvertently reveal physical security details. This is passive OSINT that requires no physical presence at the site.
+
+**LinkedIn background photographs:** Job posting photos, office tour videos on company culture pages, and "day in the life" posts routinely show:
+- Security badge designs and lanyard colors
+- Badge reader models and locations
+- Server room and NOC photographs (sometimes accidentally)
+- Desk layouts revealing dual-monitor setups, laptop docking stations, and classified label positioning
+- Whiteboard photographs with internal architecture diagrams
+
+**Instagram and X (Twitter) geotagged posts:** Searching a facility's geolocation on social platforms (Instagram location tags, Twitter geosearch) finds employee and visitor posts from inside the building. Photographs taken indoors often contain:
+- Interior floor layout visible in background
+- Network equipment cabinets
+- Interior access card readers and door configurations
+- Meeting room naming conventions (which may match internal system hostnames)
+
+**Job listing analysis for physical security details:** Job listings for physical security roles describe the technology stack: "Lenel OnGuard experience required" identifies the physical access control platform, "CCTV experience with Milestone XProtect" identifies the VMS (Video Management System). These are the same systems an insider or social engineer would need to understand.
+
+```text
+LinkedIn search → Company → Posts → Filter by media
+Instagram → Location search → Facility address
+Indeed/LinkedIn → Jobs → Security → "Physical Security Analyst" at target
+                                 → Description reveals: badge system, CCTV brand, alarm vendor
+```
 
 # Section 3 — Core concepts and terminology
 
