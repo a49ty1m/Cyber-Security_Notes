@@ -2522,7 +2522,7 @@ Process: ENCAPSULATION (↓)  |  DE-ENCAPSULATION (↑)
   - **Regulatory Domains:** Country‑specific channel and power limits affect coverage and planning.
 
 **Cable Standards and Categories**
-- **Cat5e:** Designed for 1 Gbps at up to 100 m; minimal crosstalk mitigation.
+- **Cat5e:** Designed for 100 Mbps (Fast Ethernet) at up to 100 m. Supports 1 Gbps (1000BASE-T) in practice because 1000BASE-T was engineered to work over Cat5e, but with minimal performance margin. For new Gigabit installations, Cat6 or higher is recommended.
 - **Cat6:** Improved noise protection; supports 10 Gbps for short runs (around 55 m).
 - **Cat6A:** Better shielding and separators; supports 10 Gbps at 100 m.
 - **Cat7:** Heavier shielding and stricter specs; used in specialized environments.
@@ -2678,7 +2678,15 @@ hashcat -m 22000 hash.hc22000 /usr/share/wordlists/rockyou.txt
 
 **PMKID Attack (Clientless WPA2 Attack):**
 
-Discovered in 2018 - doesn't need handshake capture, just needs AP beacon!
+Discovered by Jens Steube (hashcat author) in 2018. "Clientless" means you do **not** need to wait for a real client to connect and complete a 4-way handshake — but you **do** need to briefly interact with the AP.
+
+> **⚠️ Common misconception corrected:** The PMKID is NOT extracted from beacon frames. It is contained in the first EAPOL frame (RSNIE — RSN Information Element) that the AP sends when you attempt to associate with it. You send an association/authentication request; the AP immediately responds with the first EAPOL frame containing the PMKID. No connected client is needed, but some network activity with the AP is required.
+
+**How PMKID is derived:**
+```
+PMKID = HMAC-SHA1-128(PMK, "PMK Name" || AP_MAC || Client_MAC)
+```
+Since the PMK is derived from the PSK (password), capturing the PMKID lets you brute-force the PSK offline — same as handshake cracking, but faster to capture.
 
 ```bash
 # 1. Capture PMKID from AP
@@ -3625,7 +3633,7 @@ After a collision occurs, stations must decide **when to retry** — this is col
 | Pure ALOHA | Random | High | ~18% | Variable | Satellite, RFID |
 | Slotted ALOHA | Random | Medium | ~37% | Variable | Satellite |
 | CSMA/CD | Random | Medium | Variable — approaches 100% at low load, degrades under congestion; not applicable in modern full-duplex switched Ethernet (no collisions occur) | Variable | Legacy Ethernet |
-| CSMA/CA | Random | Low | ~70% | Variable | Wi-Fi |
+| CSMA/CA | Random | Low | Variable (~70% theoretical max; 40-60% practical) | Variable | Wi-Fi |
 | Polling | Controlled | None | High | Predictable | SCADA, mainframes |
 | Token Passing | Controlled | None | High | Bounded | Industrial, legacy |
 | FDMA | Channelization | None | Medium | Low | Radio, 1G cellular |
@@ -4251,9 +4259,9 @@ A TCP segment: **header** (minimum 20 bytes) + **data payload**.
  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |                    Acknowledgment Number                      |
  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|  Data |       |U|A|P|R|S|F|                                   |
-| Offset|  Res. |R|C|S|S|Y|I|            Window Size            |
-|       |       |G|K|H|T|N|N|                                   |
+|  Data |       |C|E|U|A|P|R|S|F|                               |
+| Offset|  Res. |W|C|R|C|S|S|Y|I|       Window Size             |
+|  (4b) | (3b)  |R|E|G|K|H|T|N|N|          (16b)               |
  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |           Checksum            |         Urgent Pointer        |
  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -4262,6 +4270,8 @@ A TCP segment: **header** (minimum 20 bytes) + **data payload**.
 |                          Payload Data                         |
  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
+
+> **Header note (RFC 3168):** The modern TCP header control section is 12 bits total: 3-bit Reserved + 9 control flags (NS, CWR, ECE, URG, ACK, PSH, RST, SYN, FIN). The older RFC 793 picture showed a 6-bit Reserved + 6 flags, before ECN (RFC 3168, 2001) allocated CWR and ECE. Tools like Wireshark show all 9 flags. The NS flag (RFC 3540) is rarely deployed.
 
 **Field Reference:**
 
@@ -4272,8 +4282,8 @@ A TCP segment: **header** (minimum 20 bytes) + **data payload**.
 | Sequence Number | 32 bits | Position of first byte in this segment |
 | Acknowledgment Number | 32 bits | Next expected byte from the remote side |
 | Data Offset | 4 bits | Header length in 32-bit words (min 5 = 20 bytes) |
-| Reserved | 6 bits | Must be zero |
-| Control Flags | 6 bits | URG, ACK, PSH, RST, SYN, FIN |
+| Reserved | **3 bits** | Must be zero (pre-RFC 3168 diagrams show 6 bits — that was before ECN was allocated) |
+| Control Flags | **9 bits** | NS, CWR, ECE, URG, ACK, PSH, RST, SYN, FIN (RFC 3168 added CWR+ECE; RFC 3540 added NS) |
 | Window Size | 16 bits | Receiver buffer available (flow control) |
 | Checksum | 16 bits | Error detection over header + data |
 | Urgent Pointer | 16 bits | Offset to urgent data (URG flag must be set) |
@@ -7191,7 +7201,7 @@ $$
 
 **What is BGP?**
 - **EGP (Inter‑Domain)** routing protocol connecting **Autonomous Systems**.
-- Internet’s de‑facto exterior routing protocol (BGP‑4, since 1989).
+- Internet’s de‑facto exterior routing protocol. **BGP‑1** was defined in RFC 1105 (1989); **BGP‑4** (current version, with CIDR support) was standardized in RFC 1771 (1995), later updated by RFC 4271 (2006). When people say “BGP,” they mean BGP-4.
 
 **Characteristics**
 - **Algorithm:** Path Vector
@@ -10579,7 +10589,7 @@ After this section, you'll understand:
 **Statistics:**
 - Root DNS servers handle trillions of queries daily
 - Cached queries resolve in milliseconds
-- 13 root server systems (A through M)
+- 13 root server **identities** (A through M, a.root-servers.net through m.root-servers.net) — but each is served by **hundreds of physical servers** worldwide using anycast routing. As of 2024 there are 1,800+ actual root server instances. The number 13 is a historical artifact of the 512-byte UDP DNS limit, not a physical count.
 
 ### 19.2 DNS Resolution Process
 
