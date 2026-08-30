@@ -408,7 +408,7 @@ A **computer network** is an interconnected collection of autonomous computing d
 **TL;DR:** A computer network is an interconnected system of devices following protocols to exchange data. Every network needs three pillars: **rules (protocols)**, **medium (transmission path)**, and **identity (addressing)**. Networks are measured by bandwidth, throughput, latency, and availability—understanding these metrics is crucial for both offensive and defensive cybersecurity operations.
 
 - **Networks = Devices + Protocols + Media + Addressing** — No single element makes a network; all three pillars must work together
-- **Performance metrics (latency, throughput, packet loss) directly impact security** — Slow networks can hide attacks; high packet loss can lead to incomplete logging
+- **Performance metrics (latency, throughput, packet loss) affect operations in both directions** — Slow networks degrade attacker and defender capabilities equally. High packet loss generates retransmission spikes and TCP state anomalies that are detectable by defenders. Logging happens at the endpoint or SIEM — a successful attack payload executes and is logged regardless of network-level packet loss elsewhere.
 - **The three goals (reliability, efficiency, security) drive all network design decisions** — Every technology choice reflects these competing priorities
 - **This foundational knowledge is prerequisite for understanding devices, protocols, and security mechanisms** — Every section that follows builds on these concepts
 - **Real-world applications:** Network design, capacity planning, attack detection, and infrastructure improvement all depend on these fundamentals
@@ -754,7 +754,7 @@ The 6 GHz band is the newest addition, offering unprecedented bandwidth and mini
    ```
    - Nodes connected in closed loop
    - Data travels in one direction (unidirectional) or both (bidirectional)
-   - **Security:** All nodes see all traffic (like bus)
+   - **Security:** In Token Ring, each node receives frames, checks the destination address, then retransmits to the next node — a passive tap is required to read frames not addressed to you. Both ring and bus are legacy topologies not found in modern deployments.
    - Pros: Equal access, predictable performance
    - Cons: Break in ring disrupts entire network
    - Examples: Token Ring (legacy), FDDI (Fiber Distributed Data Interface)
@@ -919,7 +919,7 @@ The 6 GHz band is the newest addition, offering unprecedented bandwidth and mini
 **TL;DR:** Networks are classified by geographic scope (PAN → LAN → MAN → WAN) and can be arranged in topologies (star, ring, bus, mesh). Star topology dominates modern networks because it centralizes management—making it attractive to both attackers (target the center) and defenders (monitor one point). Understanding topologies is critical for network reconnaissance and planning attack paths.
 
 - **LAN security is critical because it's the attacker's entry point** — Compromise one LAN host, pivot to others via same network
-- **Star topology = centralized control but single point of failure** — Compromise the switch/router and you control the entire LAN
+- **Star topology = centralized management point** — In basic SOHO deployments, a single switch failure brings down the LAN. Enterprise networks eliminate this with redundant stacked switches, LACP uplinks, and RSTP. Compromising the switch management plane gives forwarding control — not automatic traffic visibility, since TLS-encrypted traffic remains opaque.
 - **Mesh topology = resilient but complex to manage and secure** — Every device is a routing node; every device is a potential attack surface
 - **Bus topology is legacy and vulnerable** — All devices see all traffic; collision domain management is poor
 - **Ring topology has same security issues as bus but with more latency** — Rarely used in modern networks; found in legacy industrial systems
@@ -1015,8 +1015,8 @@ After this section, you'll understand:
 **Original Definition:** > 128 Kbps (anything faster than ISDN)
 
 **Modern Standards (varies by country):**
-- FCC (USA): Minimum 25 Mbps download, 3 Mbps upload
-- EU: Minimum 30 Mbps
+- FCC (USA): 100 Mbps download, 20 Mbps upload (updated March 2024; previous standard was 25/3 Mbps)
+- EU: Minimum 30 Mbps baseline; EU Digital Decade policy targets 1 Gbps for all households by 2030
 - Next-gen target: 100 Mbps - 1 Gbps
 
 **Characteristics:**
@@ -1072,7 +1072,7 @@ After this section, you'll understand:
 
 - **Fiber = fastest, most expensive, longest deployment time** — Best for data centers and enterprise; poor for rapid deployment
 - **DSL and cable = consumer-grade; widely deployed but congestion-prone** — Noisy channels; packet loss is common; attacks may be hidden by legitimate congestion
-- **Latency matters for attack success** — Remote code execution over satellite is impractical; local LAN attacks are instant
+- **Latency affects interactive sessions, not exploit feasibility** — RCE exploits work over any IP connection regardless of latency. The target executes the payload server-side in microseconds; your round-trip time is irrelevant to whether the exploit fires. High latency (satellite GEO: ~600 ms) makes interactive post-exploitation shells uncomfortable and may require timing adjustment for race-condition exploits, but it does not prevent initial exploitation. Starlink LEO (~40 ms) is comparable to broadband anyway. Local LAN attacks are faster interactively, not fundamentally more "possible".
 - **Bandwidth limitations constrain exfiltration** — 10 Mbps connection = 3.6 GB/hour max; useful for estimating dwell time
 - **5G/satellite represent emerging infrastructure** — New attack surfaces, different latency profiles, changing threat model
 
@@ -1203,6 +1203,12 @@ After this section, you'll understand:
 - **Port Speeds:** 10/100 Mbps (Fast Ethernet), 1 Gbps, 10 Gbps, 25/40/100 Gbps
 - **Backplane Capacity:** Total switching capacity (e.g., 48-port Gig switch = 96 Gbps)
 
+> **Loop Prevention — Why switches need STP**
+>
+> Switches create a dangerous problem: **Layer 2 loops**. Connect two switches with two cables for redundancy and broadcast frames circulate forever — each switch floods them to all ports, creating a **broadcast storm that kills the network within seconds**. Spanning Tree Protocol (STP / IEEE 802.1D) solves this by electing a Root Bridge and blocking redundant ports so only one active path exists at a time. When the active path fails, the blocked port activates. RSTP (802.1w) is the modern version — it converges in ~1-2 seconds versus STP's 30-50 seconds.
+>
+> **Security implication:** An attacker who sends crafted BPDU (Bridge Protocol Data Unit) frames can win the Root Bridge election and reroute all LAN traffic through their machine — a complete Layer 2 takeover. **BPDU Guard** prevents this by shutting down any port that receives an unexpected BPDU. Full STP/RSTP coverage is in Section 9.3.2.
+
 **Bridge 🌉:**
 - **OSI Layer:** Layer 2 (Data Link)
 - **Function:** Connects two network segments and filters traffic between them
@@ -1258,8 +1264,17 @@ After this section, you'll understand:
 ### 5.5 Multi-Layer / Special Purpose Devices
 
 **Gateway 🚪:**
-- **OSI Layer:** Can operate at any layer (typically Layer 7 - Application)
-- **Function:** Protocol translator and converter between dissimilar networks
+
+The word "gateway" has two distinct meanings in networking — it is important to separate them:
+
+**Default Gateway (Layer 3):** The router interface IP that your OS sends packets to when the destination is off-subnet. This is a **Layer 3 device** — it forwards packets using IP addresses. When `ip route` shows `default via 192.168.1.1`, that address is your default gateway operating at Layer 3. It is simply your next-hop router.
+
+**Protocol/Application Gateway (Layer 5–7):** A device that translates between incompatible application protocols (e.g., SMTP to X.400, VoIP to PSTN, MQTT to HTTP). This type operates at higher layers.
+
+In everyday networking, "gateway" almost always refers to the default gateway — your router — which is a Layer 3 device.
+
+- **OSI Layer:** Layer 3 (default gateway/router) — or Layer 5–7 for protocol translation gateways
+- **Function:** Default gateway routes packets to off-subnet destinations; protocol gateway translates between incompatible application protocols.
 - **Purpose:** Enable communication between networks using different:
   - Protocols (e.g., TCP/IP ↔ IPX/SPX)
   - Architectures (e.g., Ethernet ↔ Token Ring)
@@ -1329,7 +1344,7 @@ After this section, you'll understand:
 
 ### 🎯 Key Takeaways - Section 5
 
-**TL;DR:** Network devices operate at different OSI layers, each with specific functions: Layer 1 (hubs, repeaters) = dumb forwarding, Layer 2 (switches) = intelligent MAC-based forwarding, Layer 3 (routers) = IP-based routing, Layer 4+ (firewalls) = stateful/proxy filtering. Understanding devices is critical: compromise a switch and you can spoof MAC addresses; compromise a router and you control all traffic; compromise a firewall and you bypass perimeter defense.
+**TL;DR:** Network devices operate at different OSI layers, each with specific functions: Layer 1 (hubs, repeaters) = dumb forwarding, Layer 2 (switches) = intelligent MAC-based forwarding, Layer 3 (routers) = IP-based routing, Layer 4+ (firewalls) = stateful/proxy filtering. Understanding devices is critical: compromise a switch and you can spoof MAC addresses, manipulate the CAM table, or reroute LAN traffic; compromise a router and you control routing decisions — you can redirect traffic flows, but encrypted traffic (TLS) remains opaque without session keys; compromise a firewall and you can modify the permit/deny policy.
 
 - **Hubs = stupid** — Broadcast all traffic to all ports; no MAC learning; everyone sees everything (security nightmare)
 - **Switches = smart hubs** — Learn MAC addresses, forward only to correct port; collision domain per port
@@ -2827,8 +2842,8 @@ WPA3 requires MFP by default!
 |------|---------|
 | **aircrack-ng suite** | Complete Wi-Fi auditing (capture, inject, crack) |
 | **Wifite** | Automated Wi-Fi auditing script |
-| **Wifiphisher** | Evil twin + phishing automation |
-| **Fluxion** | Evil twin + captive portal attacks |
+| **Wifiphisher** | Evil twin + captive portal credential harvesting (requires victim to connect and voluntarily enter credentials — social engineering, not fully automated) |
+| **Fluxion** | Evil twin + captive portal attacks (same social engineering dependency as Wifiphisher) |
 | **Kismet** | Wireless reconnaissance and IDS |
 | **Bettercap** | Network attacks including Wi-Fi |
 | **hcxdumptool** | PMKID capture and WPA attacks |
@@ -3420,83 +3435,6 @@ interface GigabitEthernet0/5
 
 ---
 
-##### **Access Control Protocols (Shared Medium)**
-
-**Core Problem:** When multiple devices share a single communication channel (like early Ethernet or Wi-Fi), simultaneous transmissions cause **collisions** — signals overlap and corrupt each other. Access control protocols decide **who transmits and when** to minimize or eliminate collisions.
-
-**Why This Matters for Cybersecurity:**
-- Understanding access control reveals attack surfaces (jamming, collision-based DoS)
-- Wi-Fi security depends on CSMA/CA behavior
-- Legacy systems using older protocols may have unique vulnerabilities
-- Network performance issues often trace back to access control problems
-
----
-
-**A) Random Access (Contention‑Based)**
-
-In random access, any station can transmit whenever it wants — there's no central coordinator. This creates potential for collisions, so protocols include mechanisms to detect/avoid them.
-
-**1. ALOHA (Pure & Slotted)**
-- **Origin:** University of Hawaii (1970s) for connecting campuses via radio
-- **Mechanism:** Transmit immediately without checking if channel is busy
-- **Collision Handling:** Wait for ACK; if no ACK arrives, assume collision and retry after random delay
-- **Efficiency:** 
-  - Pure ALOHA: ~18.4% (vulnerable time = 2× frame transmission time)
-  - Slotted ALOHA: ~36.8% (transmissions only at slot boundaries)
-- **Use Today:** Basis for satellite communication, RFID systems
-
-**2. CSMA (Carrier Sense Multiple Access)**
-- **Improvement over ALOHA:** Listen before transmitting ("sense the carrier")
-- **Variants:**
-  - **1-Persistent:** If busy, wait and transmit immediately when idle (aggressive)
-  - **Non-Persistent:** If busy, wait random time before sensing again (polite)
-  - **p-Persistent:** If idle, transmit with probability p (balanced)
-- **Problem:** Doesn't eliminate collisions during propagation delay window
-
-**3. CSMA/CD (Collision Detection) — Wired Ethernet**
-- **How it works:** 
-  1. Listen to channel (carrier sense)
-  2. If idle, begin transmitting
-  3. While transmitting, monitor for collision
-  4. If collision detected: stop, send 48-bit jam signal, wait (backoff), retry
-- **Binary Exponential Backoff:** After collision $n$, wait random time from $[0, 2^n - 1]$ slot times
-- **Why 64-byte minimum frame?** Ensures sender is still transmitting when collision signal returns (based on max cable length)
-- **Status:** Obsolete in modern switched Ethernet (full-duplex = no collisions)
-
-**4. CSMA/CA (Collision Avoidance) — Wi-Fi (802.11)**
-- **Why not CD?** Wireless stations can't detect collisions while transmitting (signal overwhelms receiver)
-- **How it works:**
-  1. Sense channel; if busy, defer
-  2. If idle for DIFS (DCF Inter-Frame Space), start backoff timer
-  3. Decrement timer only when channel is idle
-  4. When timer = 0, transmit
-  5. Wait for ACK; if no ACK, assume collision, double backoff window
-- **RTS/CTS (Optional):** Sender sends Request-to-Send; receiver replies Clear-to-Send; reserves channel (solves hidden node problem)
-- **Hidden Node Problem:** Station A can hear AP, Station B can hear AP, but A and B can't hear each other → collisions at AP
-
-```
-Hidden Node Problem:
-   [A] ←───→ [AP] ←───→ [B]
-    |                     |
-    └── A and B can't ────┘
-        hear each other
-```
-
-**5. Collision Resolution (What Happens After Collision)**
-
-After a collision occurs, stations must decide **when to retry** — this is collision resolution.
-
-- **Binary Exponential Backoff (BEB):** Primary method used by Ethernet & Wi-Fi
-  - After collision #$n$, wait random time from $[0, 2^n - 1]$ slot times
-  - Window doubles with each collision (adapts to congestion)
-  - Max retries: 16 (Ethernet), 4-7 (Wi-Fi)
-- **Jam Signal:** 48-bit signal sent to ensure all stations detect collision (CSMA/CD)
-- **ACK-based Detection:** No ACK received → assume collision (CSMA/CA, ALOHA)
-
-> 📖 *For detailed collision resolution coverage including backoff algorithms, Wi-Fi contention windows, security implications, and troubleshooting, see [Collision Resolution Deep Dive](#collision-resolution-deep-dive) below.*
-
----
-
 **B) Controlled Access**
 
 In controlled access, a mechanism ensures only one station transmits at a time — no collisions by design, but overhead from coordination.
@@ -3603,13 +3541,90 @@ Receiver (wants A): Combined × Code_A → Original Data_A
 
 ---
 
+##### **Access Control Protocols (Shared Medium)**
+
+**Core Problem:** When multiple devices share a single communication channel (like early Ethernet or Wi-Fi), simultaneous transmissions cause **collisions** — signals overlap and corrupt each other. Access control protocols decide **who transmits and when** to minimize or eliminate collisions.
+
+**Why This Matters for Cybersecurity:**
+- Understanding access control reveals attack surfaces (jamming, collision-based DoS)
+- Wi-Fi security depends on CSMA/CA behavior
+- Legacy systems using older protocols may have unique vulnerabilities
+- Network performance issues often trace back to access control problems
+
+---
+
+**A) Random Access (Contention‑Based)**
+
+In random access, any station can transmit whenever it wants — there's no central coordinator. This creates potential for collisions, so protocols include mechanisms to detect/avoid them.
+
+**1. ALOHA (Pure & Slotted)**
+- **Origin:** University of Hawaii (1970s) for connecting campuses via radio
+- **Mechanism:** Transmit immediately without checking if channel is busy
+- **Collision Handling:** Wait for ACK; if no ACK arrives, assume collision and retry after random delay
+- **Efficiency:** 
+  - Pure ALOHA: ~18.4% (vulnerable time = 2× frame transmission time)
+  - Slotted ALOHA: ~36.8% (transmissions only at slot boundaries)
+- **Use Today:** Basis for satellite communication, RFID systems
+
+**2. CSMA (Carrier Sense Multiple Access)**
+- **Improvement over ALOHA:** Listen before transmitting ("sense the carrier")
+- **Variants:**
+  - **1-Persistent:** If busy, wait and transmit immediately when idle (aggressive)
+  - **Non-Persistent:** If busy, wait random time before sensing again (polite)
+  - **p-Persistent:** If idle, transmit with probability p (balanced)
+- **Problem:** Doesn't eliminate collisions during propagation delay window
+
+**3. CSMA/CD (Collision Detection) — Wired Ethernet**
+- **How it works:** 
+  1. Listen to channel (carrier sense)
+  2. If idle, begin transmitting
+  3. While transmitting, monitor for collision
+  4. If collision detected: stop, send 48-bit jam signal, wait (backoff), retry
+- **Binary Exponential Backoff:** After collision $n$, wait random time from $[0, 2^n - 1]$ slot times
+- **Why 64-byte minimum frame?** Ensures sender is still transmitting when collision signal returns (based on max cable length)
+- **Status:** Obsolete in modern switched Ethernet (full-duplex = no collisions)
+
+**4. CSMA/CA (Collision Avoidance) — Wi-Fi (802.11)**
+- **Why not CD?** Wireless stations can't detect collisions while transmitting (signal overwhelms receiver)
+- **How it works:**
+  1. Sense channel; if busy, defer
+  2. If idle for DIFS (DCF Inter-Frame Space), start backoff timer
+  3. Decrement timer only when channel is idle
+  4. When timer = 0, transmit
+  5. Wait for ACK; if no ACK, assume collision, double backoff window
+- **RTS/CTS (Optional):** Sender sends Request-to-Send; receiver replies Clear-to-Send; reserves channel (solves hidden node problem)
+- **Hidden Node Problem:** Station A can hear AP, Station B can hear AP, but A and B can't hear each other → collisions at AP
+
+```
+Hidden Node Problem:
+   [A] ←───→ [AP] ←───→ [B]
+    |                     |
+    └── A and B can't ────┘
+        hear each other
+```
+
+**5. Collision Resolution (What Happens After Collision)**
+
+After a collision occurs, stations must decide **when to retry** — this is collision resolution.
+
+- **Binary Exponential Backoff (BEB):** Primary method used by Ethernet & Wi-Fi
+  - After collision #$n$, wait random time from $[0, 2^n - 1]$ slot times
+  - Window doubles with each collision (adapts to congestion)
+  - Max retries: 16 (Ethernet), 4-7 (Wi-Fi)
+- **Jam Signal:** 48-bit signal sent to ensure all stations detect collision (CSMA/CD)
+- **ACK-based Detection:** No ACK received → assume collision (CSMA/CA, ALOHA)
+
+> 📖 *For detailed collision resolution coverage including backoff algorithms, Wi-Fi contention windows, security implications, and troubleshooting, see [Collision Resolution Deep Dive](#collision-resolution-deep-dive) below.*
+
+---
+
 **Comparison Table: Access Control Protocols**
 
 | Protocol | Type | Collision | Efficiency | Latency | Use Case |
 |----------|------|-----------|------------|---------|----------|
 | Pure ALOHA | Random | High | ~18% | Variable | Satellite, RFID |
 | Slotted ALOHA | Random | Medium | ~37% | Variable | Satellite |
-| CSMA/CD | Random | Medium | ~90% | Variable | Legacy Ethernet |
+| CSMA/CD | Random | Medium | Variable — approaches 100% at low load, degrades under congestion; not applicable in modern full-duplex switched Ethernet (no collisions occur) | Variable | Legacy Ethernet |
 | CSMA/CA | Random | Low | ~70% | Variable | Wi-Fi |
 | Polling | Controlled | None | High | Predictable | SCADA, mainframes |
 | Token Passing | Controlled | None | High | Bounded | Industrial, legacy |
@@ -3681,11 +3696,13 @@ Sender must still be transmitting when collision signal returns.
 - Rely on ACK to confirm success.
 
 **Key Timing Parameters**
-| Parameter | Purpose | Typical Value |
-|-----------|---------|---------------|
-| **DIFS** | Wait before transmitting | 50 μs (802.11a/g) |
-| **SIFS** | Short gap for ACK/CTS | 10 μs (802.11a/g) |
-| **Slot Time** | Backoff unit | 9 μs (802.11a/g/n) |
+| Parameter | Purpose | 802.11b | 802.11a/g | 802.11n/ac/ax |
+|-----------|---------|---------|-----------|----------------|
+| **DIFS** | Wait before transmitting | 50 μs | 34 μs | 34 μs (5 GHz) |
+| **SIFS** | Short gap for ACK/CTS | 10 μs | 16 μs | 16 μs |
+| **Slot Time** | Backoff unit | 20 μs | 9 μs | 9 μs |
+
+> Values vary by standard and band. Always confirm against the specific 802.11 amendment for precise timing.
 
 **Algorithm Steps**
 1. Sense channel; if busy, defer.
@@ -4181,7 +4198,7 @@ $$
   - **EIGRP (Enhanced Interior Gateway Routing Protocol):** Cisco hybrid
   - **BGP (Border Gateway Protocol):** Internet backbone routing
 - **IPsec:** Secure network layer communication
-- **ARP (Address Resolution Protocol):** Maps IP to MAC (border with Layer 2)
+- **ARP (Address Resolution Protocol):** Resolves an IP address to a MAC address within a local network segment. ARP packets are Ethernet frames (EtherType 0x0806) — they are never routed, never cross a router boundary, and belong at Layer 2 (Link Layer). ARP uses IP addresses as input but its delivery mechanism is purely Layer 2. See Section 11.6 (Link Layer) and Section 18.8 for full coverage.
 - **NAT (Network Address Translation):** Private to public IP mapping
 
 **IPv4 Addressing Details:**
@@ -4575,7 +4592,7 @@ UDP is **connectionless, unreliable, and very fast**. No handshake, no ACK, no r
 **Concept Checks (Video-Aligned)**
 - **UDP file transfer check:** Should `.zip` transfer use UDP or TCP? Use **TCP** because even small loss can corrupt the file.
 - **Handshake math:** If client sends `SYN seq=1000`, server replies with `ACK=1001` in `SYN-ACK`.
-- **Seq/Ack math:** If a segment has `SEQ=1000` and length `50`, expected ACK is `1050` (or `1051` if counting from the next expected byte in one-based teaching examples).
+- **Seq/Ack math:** If a segment has `SEQ=1000` and length `50`, the ACK = `1050` (the next expected byte). This is unambiguous — TCP sequence numbers follow a single rule: ACK = SEQ + data_length. The SYN flag itself consumes one sequence number (which is why the ACK after a SYN with seq=1000 is ack=1001 — the SYN counts as one byte in the sequence space, not because of any one-based counting).
 - **Buffer logic:** Sent-but-unACKed data must remain in sender buffer for potential retransmission.
 - **Error-control behavior:** If segment 2 is dropped and segments 3/4 arrive, receiver keeps sending duplicate ACK requesting segment 2; sender fast-retransmits after 3 duplicate ACKs.
 
@@ -4695,7 +4712,6 @@ sudo tcpdump -i any -nn 'udp port 53'
 **Protocols:**
 - **NetBIOS (Network Basic Input/Output System):** Windows networking
 - **RPC (Remote Procedure Call):** Client-server communication
-- **PPTP (Point-to-Point Tunneling Protocol):** VPN sessions
 - **SMB/CIFS (Server Message Block):** File sharing
 - **NFS (Network File System):** Unix file sharing
 - **SQL:** Database sessions
@@ -4728,7 +4744,9 @@ sudo tcpdump -i any -nn 'udp port 53'
 **Encryption:**
 - **Symmetric:** AES, DES, 3DES (same key for encrypt/decrypt)
 - **Asymmetric:** RSA, ECC (public/private key pairs)
-- **Protocols:** SSL/TLS, SSH
+- **Protocols:** SSH (for compression/encoding aspects only)
+
+TLS (Transport Layer Security) is sometimes placed at Layer 6 in OSI textbooks because it handles encryption — a function the OSI model assigns to Presentation. In practice this placement is misleading. TLS operates above TCP (Layer 4) and is invoked by applications (Layer 7); it is not a Presentation Layer protocol in any real implementation. The OSI Presentation Layer was never widely deployed as a distinct layer. In the TCP/IP model, TLS sits between TCP and the application — it is application-layer security. Wireshark shows TLS records inside TCP segments, not as a separate layer between TCP and HTTP. See the TLS deep-dive later in this section for details.
 
 **Compression:**
 - **Lossless:** ZIP, GZIP, LZ77 (no data loss)
@@ -4758,6 +4776,8 @@ sudo tcpdump -i any -nn 'udp port 53'
 
 ##### **SSL/TLS Deep Dive — Critical for Web Security**
 
+> **Reading note:** This deep-dive appears inside the OSI Layer 6 description for proximity, but TLS is best understood after you have covered TCP, ports, and the TCP/IP model in Section 11. If you are reading top-to-bottom for the first time, consider returning here after completing Section 11. TLS makes full sense once you understand TCP segments, ports, what "above TCP" means, and how application protocols (HTTP) sit on top of transport protocols.
+
 TLS (Transport Layer Security) is the cryptographic protocol securing HTTPS, email, VPNs, and most modern network communications. Understanding TLS is essential for security professionals.
 
 **SSL vs TLS History:**
@@ -4771,7 +4791,37 @@ TLS (Transport Layer Security) is the cryptographic protocol securing HTTPS, ema
 | TLS 1.2 | 2008 | ✅ Widely used, secure with good config |
 | TLS 1.3 | 2018 | ✅ **Recommended** - Fastest, most secure |
 
-**TLS 1.2 Handshake (RSA Key Exchange):**
+**TLS 1.2 Handshake (RSA Key Exchange) — Legacy: RSA key exchange was removed in TLS 1.3**
+
+**TLS 1.3 — Current Standard (RFC 8446, 2018)**
+
+TLS 1.3 made fundamental improvements over TLS 1.2:
+
+- **RSA key exchange removed** — TLS 1.3 mandates ephemeral Diffie-Hellman (ECDHE) for every connection, providing forward secrecy by default. Compromise of the server's private key does not decrypt past sessions.
+- **1-RTT handshake** (down from 2-RTT in TLS 1.2) — the client can send application data immediately after the first round trip.
+- **0-RTT resumption** for repeated connections (with replay-attack caveats).
+- **Simplified cipher suites** — weak algorithms (RC4, DES, 3DES, CBC-mode ciphers, export-grade) removed. Only AEAD ciphers allowed (AES-GCM, ChaCha20-Poly1305).
+- **Encrypted handshake** — Certificate and all post-ServerHello messages are encrypted; in TLS 1.2 the Certificate is plaintext.
+
+**TLS 1.3 Handshake:**
+```
+Client                                    Server
+  │── ClientHello + key_share ───────────>│   (DH key share sent immediately)
+  │                                        │
+  │<── ServerHello + key_share ────────────│   (Server's DH key share)
+  │<── {EncryptedExtensions} ──────────────│   (Everything after ServerHello is encrypted)
+  │<── {Certificate} ──────────────────────│
+  │<── {CertificateVerify} ────────────────│
+  │<── {Finished} ─────────────────────────│
+  │                                        │
+  │── {Finished} ──────────────────────────>│  (1 RTT — handshake complete)
+  │── {Application Data} ──────────────────>│  (Data flows immediately)
+```
+
+In Wireshark: TLS 1.3 shows `TLSv1.3` with `Client Hello` and `Server Hello` visible; the Certificate and all subsequent records are **encrypted** — unlike TLS 1.2 where the Certificate appears in plaintext.
+
+The TLS 1.2 handshake below is shown for historical reference. You will encounter TLS 1.2 on older servers and legacy environments:
+
 ```
 Client                                          Server
    │                                               │
@@ -5869,7 +5919,7 @@ Handles **logical addressing and routing** — moving packets from source to des
 | IPv4 | Core 32-bit addressing and routing |
 | IPv6 | 128-bit next-generation addressing |
 | ICMP | Control messages and diagnostics (ping, traceroute) |
-| ARP | Resolves IP to MAC address (bridges Internet and Link layers) |
+| ARP | Resolves an IP address to a MAC address within the local network segment. ARP packets are Ethernet frames (EtherType 0x0806) and are never routed — ARP belongs to the Link Layer, not the Internet Layer. It is cross-referenced here because it works alongside IP addressing. Full coverage in Section 11.6 and Section 18.8. |
 | IGMP | Manages multicast group membership |
 | IPsec | Encryption and authentication at IP layer (used in VPNs) |
 
@@ -6110,7 +6160,7 @@ After this section, you'll understand:
 | Address Format  | Decimal (dot)       | Hexadecimal (colon)        |
 | Example         | 192.168.1.1         | 2001:db8::1                |
 | Header Size     | 20-60 bytes         | 40 bytes                   |
-| Security        | Optional (IPsec)    | Built-in IPsec support (deployment optional) |
+| Security        | Optional (IPsec)    | IPsec support designed-in (optional in practice; NOT enabled by default — see Section 14) |
 | NAT             | Common              | Usually not required (but can still exist) |
 | Broadcast       | Yes                 | No (uses multicast)        |
 
@@ -7164,9 +7214,9 @@ $$
 - **NOTIFICATION:** Error → session closes
 
 **Key Path Attributes**
-- **AS_PATH:** Shorter preferred
+- **AS_PATH:** The list of AS numbers a route has traversed. Shorter AS_PATH is *one* tiebreaker in the BGP decision process, but BGP is fundamentally a **policy routing protocol** — not a shortest-path algorithm. The full BGP decision order is: Weight → LOCAL_PREF → locally originated → AS_PATH length → origin type → MED → eBGP over iBGP → IGP metric → oldest route → router ID. ISPs routinely override AS_PATH preference with LOCAL_PREF and community attributes to implement business-driven routing decisions regardless of path length. BGP picks the most *preferred* path by policy, not the shortest or fastest path.
 - **NEXT_HOP:** Next router IP
-- **LOCAL_PREF:** Preferred exit within an AS (outbound)
+- **LOCAL_PREF:** Preferred exit within an AS for outbound traffic — higher value wins; the most influential attribute inside an AS
 - **MED:** Suggested entry for neighbors (inbound)
 
 
@@ -7494,7 +7544,7 @@ TCP Segment
 
 **Security:**
 - **IPv4:** IPsec optional
-- **IPv6:** IPsec originally mandatory (now optional but widely supported)
+- **IPv6:** IPv6 was designed with IPsec support in mind, but IPsec is **not mandatory and not enabled by default**. RFC 6434 (2011) downgraded the implementation requirement to a SHOULD; RFC 8200 (current IPv6 standard) recommends IPsec support but does not mandate it. IPv6 connections are **unencrypted by default**, exactly like IPv4. IPsec must be explicitly configured on both endpoints — do not assume IPv6 provides automatic encryption.
 
 ### 14.9 IPv6 Autoconfiguration (SLAAC)
 
@@ -7572,8 +7622,8 @@ or
 - Route aggregation
 
 ✅ **Built-in Security:**
-- IPsec support (authentication and encryption)
-- Originally mandatory (now optional but common)
+- IPsec support was designed into the protocol architecture from the start
+- In practice, IPsec is **not enabled by default** and is not mandatory. RFC 8200 (current IPv6 standard) recommends IPsec support but does not mandate it. IPv6 traffic is unencrypted by default — IPsec must be explicitly configured, exactly as with IPv4.
 
 ✅ **Autoconfiguration:**
 - SLAAC - no DHCP server needed
@@ -8097,7 +8147,7 @@ After this section, you'll understand:
 
 | Security Aspect | IPv4 | IPv6 |
 |-----------------|------|------|
-| **IPsec Support** | Optional, bolt-on | Originally mandatory, now optional but well-integrated |
+| **IPsec Support** | Optional, bolt-on | Designed into the protocol architecture but not mandatory and not enabled by default. IPv6 traffic is unencrypted by default — same as IPv4. IPsec must be explicitly configured on both endpoints. (RFC 8200) |
 | **Address Scanning** | Feasible (scan /24 in seconds) | Impractical (2⁶⁴ addresses on subnet) |
 | **Privacy** | DHCP leases somewhat trackable | Privacy extensions randomize addresses |
 | **NAT "Security"** | Provides obscurity | No NAT, requires explicit firewall rules |
@@ -8229,7 +8279,7 @@ After this section, you'll understand:
 
 ### 🎯 Key Takeaways - Section 15
 
-**TL;DR:** IPv4 still dominates (99%+ of internet) due to deployment inertia, but IPv6 is growing (Google: 40%+ IPv6 traffic). IPv4 uses NAT for privacy; IPv6 has native global addressing. IPv4 header is 20-60 bytes; IPv6 is fixed 40 bytes (simpler). IPv6 security is "built-in" (mandatory IPsec in theory, but not mandated in practice). Transition mechanisms (dual-stack, tunneling) allow coexistence.
+**TL;DR:** IPv4 still dominates but IPv6 is growing fast (~40% of Internet traffic as of 2026 per Google). IPv4 uses NAT for address sharing; IPv6 has native global addressing. IPv4 header is 20-60 bytes (variable); IPv6 is fixed 40 bytes (simpler). IPv6 IPsec support was designed in from the start but is not mandatory and not enabled by default — IPv6 connections are unencrypted by default, exactly like IPv4. Transition mechanisms (dual-stack, tunneling) allow coexistence.
 
 - **IPv4 exhaustion = solved by NAT, not migration** — Expected 2011; still works in 2024 via NAT; slows IPv6 adoption
 - **IPv6 header is simpler than IPv4** — No fragmentation options (sent to source), no TTL interpretation differences, simpler parsing
@@ -8267,8 +8317,10 @@ A penetration tester identifies target services running on discovered IP address
 
 ## 16. MIME Types — Multipurpose Internet Mail Extensions
 
+> **Context note:** MIME is an application-layer concept — it describes content metadata attached to HTTP responses and email messages, not a networking protocol. It is covered here because it directly feeds into web attack surface understanding, but the full context for MIME (HTTP headers, file upload security, browser content sniffing) belongs to web security study. Read this section alongside your HTTP and web application security material.
+
 **Section Overview:**
-MIME types are metadata labels telling applications what kind of content they're receiving. This seems innocuous, but MIME handling is a critical security control—and it fails constantly. Mishandling MIME types enables file upload bypasses, XXE attacks, polyglot file exploits, and browser script execution. This section covers both offensive techniques (polyglot files) and defensive controls (MIME validation, Content-Disposition headers). If you understand MIME, you unlock an entire category of vulnerabilities.
+MIME types are metadata labels telling applications what kind of content they're receiving. This seems innocuous, but MIME handling is a critical security control — and it fails constantly. Mishandling MIME types enables file upload bypasses, XXE attacks, polyglot file exploits, and browser script execution. This section covers both offensive techniques (polyglot files) and defensive controls (MIME validation, Content-Disposition headers). If you understand MIME, you unlock an entire category of vulnerabilities.
 
 **Learning Outcomes:**
 After this section, you'll understand:
@@ -8670,6 +8722,18 @@ After this section, you'll understand:
 - Firewalls are one layer of defense
 - Must be combined with: IDS/IPS, antivirus, secure configuration, patching, etc.
 
+> **Packet Filter vs Stateful Firewall — the most important firewall distinction**
+>
+> | | Packet Filter (Gen 1) | Stateful Firewall (Gen 2+) |
+> |---|---|---|
+> | **Memory** | None — each packet evaluated in isolation | Tracks every active connection in a state table |
+> | **Return traffic** | Requires explicit rules for both directions | Automatically permits return traffic for established connections |
+> | **TCP awareness** | Cannot verify that a TCP handshake completed | Verifies SYN→SYN-ACK→ACK sequence; rejects mid-flow injections |
+> | **Attack resistance** | Vulnerable to spoofed packets that match port rules | Rejects packets not belonging to a known connection |
+> | **Rule complexity** | High — must explicitly allow ESTABLISHED/RELATED traffic | Low — one outbound rule covers the return path automatically |
+>
+> Almost all modern firewalls are stateful. When you write `iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT`, that is stateful inspection. A pure packet filter without state tracking would need a separate inbound rule for every return port — unmanageable and insecure at any scale.
+
 ### 17.2 Firewall Types by Generation
 
 #### 17.2.1 First Generation: Packet Filtering Firewalls
@@ -9024,13 +9088,16 @@ Internet <--> [External FW] <--> DMZ (web, email servers) <--> [Internal FW] <--
 
 #### 17.6.1 Fragmentation Attacks
 
-**Technique:** Split malicious payload across multiple packets
+**Technique:** Split malicious payload across multiple IP fragments so the IDS or firewall never sees the complete attack signature in a single packet.
 
-**Why It Works:** Some firewalls don't reassemble fragments
+**Modern context:** All current stateful firewalls and NGFW devices (Palo Alto, Fortinet, Check Point, Cisco ASA) reassemble IP fragments before inspection — this has been standard practice for over 20 years. Fragment-based evasion is primarily effective against:
+- Older or embedded firewalls running basic packet-filter ACLs (no state)
+- Some IDS/IPS sensors that process individual packets without full reassembly
+- IPv6 fragmentation on security devices that handle IPv4 and IPv6 fragment reassembly differently
 
-**Tools:** fragroute, fragrouter
+**Tools:** fragroute (last release 2001 — largely historical), Scapy (current, allows crafting overlapping fragments)
 
-**Mitigation:** Enable fragment reassembly on firewall
+**Mitigation:** Enable fragment reassembly before inspection (default on all modern stateful firewalls). For IDS: configure full fragment reassembly at the sensor level.
 
 #### 17.6.2 Protocol Encapsulation / Tunneling
 
@@ -9845,18 +9912,46 @@ Into:
 **Automated** via DHCP server
 
 **DHCP Process (DORA):**
-1. **Discover:** Client broadcasts "DHCPDISCOVER"
-2. **Offer:** Server replies with "DHCPOFFER" (IP + config)
-3. **Request:** Client broadcasts "DHCPREQUEST" (accepting offer)
-4. **Acknowledge:** Server sends "DHCPACK" (confirms lease)
+1. **Discover:** Client broadcasts DHCPDISCOVER (src: 0.0.0.0, dst: 255.255.255.255, UDP port 67). The client has no IP yet so the source is all-zeros.
+2. **Offer:** Server unicasts or broadcasts DHCPOFFER containing a proposed IP address, subnet mask, default gateway, DNS servers, and lease duration.
+3. **Request:** Client broadcasts DHCPREQUEST accepting the offer. Broadcast — not unicast — so all DHCP servers on the segment know which offer was accepted (others retract their offers).
+4. **Acknowledge:** Server sends DHCPACK confirming the lease. Client configures its interface with the provided parameters.
+
+```
+Client                                              DHCP Server
+  │── DHCPDISCOVER (broadcast 255.255.255.255) ───>│
+  │                                                  │
+  │<── DHCPOFFER (proposed IP, gateway, DNS) ────────│
+  │                                                  │
+  │── DHCPREQUEST (broadcast, accepting offer) ────>│
+  │                                                  │
+  │<── DHCPACK (confirmed lease) ────────────────────│
+  │                                                  │
+  │   [Client configures interface]                  │
+```
 
 **Lease Information Provided:**
-- IP address
-- Subnet mask
+- IP address and subnet mask
 - Default gateway
 - DNS servers
-- Lease duration
-- (Optional) NTP, WINS, domain name, etc.
+- Lease duration (client must renew before expiry or request a new lease)
+- Optional: NTP servers, domain name, WINS, TFTP server, etc.
+
+**DHCP Relay Agents:**
+DHCP uses broadcasts, which routers do not forward. On routed networks (where clients and the DHCP server are on different subnets), a **DHCP relay agent** (configured on the router or Layer 3 switch) intercepts the broadcast and forwards it as a unicast packet to the DHCP server. The server replies to the relay, which forwards it back to the client. This allows a single DHCP server to serve multiple subnets.
+
+**DHCP Lease Renewal:**
+- At 50% of lease duration (T1): client unicasts DHCPREQUEST to its current server to renew.
+- At 87.5% (T2): client broadcasts DHCPREQUEST if no response from T1 (server may have changed).
+- At 100%: client loses the IP and must start DORA from scratch.
+
+**Security — Rogue DHCP Attack:**
+Any machine on the network can run a DHCP server and respond to DHCPDISCOVER before the legitimate server does. A rogue DHCP server can hand out:
+- A fake default gateway pointing to the attacker (redirects all off-subnet traffic through the attacker)
+- A fake DNS server (redirects all name resolution to the attacker)
+- A shorter lease duration (forces frequent re-requests, giving the attacker more opportunities to respond first)
+
+This is a simple, effective man-in-the-middle attack requiring no credentials. **DHCP Snooping** (on managed switches) defeats it by designating specific ports as "trusted" (connected to legitimate DHCP servers) and dropping DHCP offer/acknowledgment packets arriving on untrusted ports.
 
 **Use Cases:**
 - User devices (laptops, phones, tablets)
@@ -9870,9 +9965,10 @@ Into:
 - ✅ Reduced human error
 
 **Disadvantages:**
-- ❌ DHCP server single point of failure (use redundancy)
-- ❌ Changing IP addresses (problematic for servers)
+- ❌ DHCP server single point of failure (use redundancy or split-scope)
+- ❌ Changing IP addresses (problematic for servers — use reservations)
 - ❌ Potential IP exhaustion if pool too small
+- ❌ Vulnerable to rogue DHCP attacks without DHCP Snooping
 
 #### 18.7.3 DHCP Reservations
 
@@ -10890,6 +10986,18 @@ Recursive Resolver → User: "93.184.216.34" (final answer)
 - Large responses (DNSSEC signatures)
 
 ### 19.8 DNS Security
+
+> **DNSSEC and DoH/DoT solve different problems — they are not alternatives**
+>
+> | | DNSSEC | DoH / DoT |
+> |---|---|---|
+> | **Problem solved** | *Integrity* — proves DNS answers came from the legitimate zone and were not modified in transit | *Confidentiality* — encrypts queries so your ISP or network observer cannot see what domains you look up |
+> | **What it does NOT provide** | Privacy — queries are plaintext; observers can still see you queried `example.com`, just cannot tamper with the answer | Authentication — your encrypted resolver could still return forged responses; you are trusting the resolver |
+> | **Who sees the query** | Everyone on the path (query is unencrypted) | Only the DoH/DoT resolver |
+> | **Chain of trust** | Root → TLD → domain, verified by cryptographic signatures | Shifts trust to your chosen resolver (Cloudflare, Google, Quad9, etc.) |
+> | **Deployment complexity** | High — zone operators must sign records; resolvers must validate | Low — configure a DoH/DoT resolver endpoint |
+>
+> They are complementary, not interchangeable. DNSSEC without DoH: answers are authentic but visible to passive observers. DoH without DNSSEC: queries are private but the resolver could return tampered answers. Both together provide integrity and confidentiality.
 
 #### 19.8.1 DNS Security Issues
 
