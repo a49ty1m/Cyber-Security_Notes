@@ -189,30 +189,30 @@ $ for domain in $(cat identified_domains.txt); do
 
 # Section 3 — Core concepts and terminology
 
-| Term | Definition |
-|------|-----------|
-| **SPF (Sender Policy Framework)** | DNS TXT record listing IPs and domains authorized to send mail for a domain |
-| **DKIM (DomainKeys Identified Mail)** | Cryptographic signing of outbound mail; receiver validates the signature against a public key in DNS |
-| **DMARC (Domain-based Message Authentication, Reporting & Conformance)** | Policy record linking SPF/DKIM results to an enforcement action (none/quarantine/reject) and alignment requirements |
-| **MX record** | DNS record identifying the mail server(s) that receive inbound mail for a domain |
-| **Selector** | Identifier in a DKIM key that points to a specific public key (e.g. `selector1._domainkey.example.com`) |
-| **Alignment** | DMARC requirement that the domain in SPF/DKIM result matches the `From:` header domain |
-| **Organizational domain** | The registrable domain (e.g. `target.com`) used as the anchor for relaxed DMARC alignment |
-| **Envelope sender** | The SMTP `MAIL FROM:` address used for SPF evaluation — may differ from the visible `From:` header |
-| **`p=none`** | DMARC monitor-only mode — no enforcement action is requested for failing mail |
-| **`p=quarantine`** | DMARC policy requesting receivers treat failing mail as suspicious (route to spam) |
-| **`p=reject`** | DMARC policy requesting receivers hard-reject failing mail |
-| **`sp=`** | DMARC subdomain policy; controls policy for subdomains when no subdomain-specific DMARC record exists |
-| **`adkim=`** | DMARC DKIM alignment mode: `s` (strict) or `r` (relaxed, default) |
-| **`aspf=`** | DMARC SPF alignment mode: `s` (strict) or `r` (relaxed, default) |
-| **`pct=`** | Percentage of failing messages to apply the DMARC policy to; `pct=100` means all failing messages |
-| **`rua=`** | Aggregate DMARC report destination — receives daily XML summary reports of pass/fail statistics |
-| **`ruf=`** | Forensic DMARC report destination — may receive per-message failure reports |
-| **`~all`** | SPF softfail — non-listed senders receive a soft failure result, not hard rejection |
-| **`-all`** | SPF hardfail — non-listed senders are hard-rejected |
-| **`+all`** | SPF pass-all — all senders are authorized; effectively disables SPF (rare but exists) |
-| **SPF PermError** | SPF processing failure, typically from exceeding 10 DNS lookups; treated as SPF fail by DMARC |
-| **BIMI** | Brand Indicators for Message Identification — DNS record showing a brand logo in mail clients; only issued when DMARC is at `p=quarantine` or `p=reject` |
+| Term                                                                     | Definition                                                                                                                                               |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SPF (Sender Policy Framework)**                                        | DNS TXT record listing IPs and domains authorized to send mail for a domain                                                                              |
+| **DKIM (DomainKeys Identified Mail)**                                    | Cryptographic signing of outbound mail; receiver validates the signature against a public key in DNS                                                     |
+| **DMARC (Domain-based Message Authentication, Reporting & Conformance)** | Policy record linking SPF/DKIM results to an enforcement action (none/quarantine/reject) and alignment requirements                                      |
+| **MX record**                                                            | DNS record identifying the mail server(s) that receive inbound mail for a domain                                                                         |
+| **Selector**                                                             | Identifier in a DKIM key that points to a specific public key (e.g. `selector1._domainkey.example.com`)                                                  |
+| **Alignment**                                                            | DMARC requirement that the domain in SPF/DKIM result matches the `From:` header domain                                                                   |
+| **Organizational domain**                                                | The registrable domain (e.g. `target.com`) used as the anchor for relaxed DMARC alignment                                                                |
+| **Envelope sender**                                                      | The SMTP `MAIL FROM:` address used for SPF evaluation — may differ from the visible `From:` header                                                       |
+| **`p=none`**                                                             | DMARC monitor-only mode — no enforcement action is requested for failing mail                                                                            |
+| **`p=quarantine`**                                                       | DMARC policy requesting receivers treat failing mail as suspicious (route to spam)                                                                       |
+| **`p=reject`**                                                           | DMARC policy requesting receivers hard-reject failing mail                                                                                               |
+| **`sp=`**                                                                | DMARC subdomain policy; controls policy for subdomains when no subdomain-specific DMARC record exists                                                    |
+| **`adkim=`**                                                             | DMARC DKIM alignment mode: `s` (strict) or `r` (relaxed, default)                                                                                        |
+| **`aspf=`**                                                              | DMARC SPF alignment mode: `s` (strict) or `r` (relaxed, default)                                                                                         |
+| **`pct=`**                                                               | Percentage of failing messages to apply the DMARC policy to; `pct=100` means all failing messages                                                        |
+| **`rua=`**                                                               | Aggregate DMARC report destination — receives daily XML summary reports of pass/fail statistics                                                          |
+| **`ruf=`**                                                               | Forensic DMARC report destination — may receive per-message failure reports                                                                              |
+| **`~all`**                                                               | SPF softfail — non-listed senders receive a soft failure result, not hard rejection                                                                      |
+| **`-all`**                                                               | SPF hardfail — non-listed senders are hard-rejected                                                                                                      |
+| **`+all`**                                                               | SPF pass-all — all senders are authorized; effectively disables SPF (rare but exists)                                                                    |
+| **SPF PermError**                                                        | SPF processing failure, typically from exceeding 10 DNS lookups; treated as SPF fail by DMARC                                                            |
+| **BIMI**                                                                 | Brand Indicators for Message Identification — DNS record showing a brand logo in mail clients; only issued when DMARC is at `p=quarantine` or `p=reject` |
 
 | Control | Result variants | Attacker interpretation |
 |---------|----------------|------------------------|

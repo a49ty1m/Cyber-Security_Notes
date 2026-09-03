@@ -213,7 +213,7 @@ Hostname
    ↓
 Resolution
    ↓
-IP
+   IP
    ↓
 ASN / Provider
    ↓

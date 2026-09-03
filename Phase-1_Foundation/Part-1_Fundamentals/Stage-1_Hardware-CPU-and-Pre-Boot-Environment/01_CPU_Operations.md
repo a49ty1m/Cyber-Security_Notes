@@ -1,6 +1,6 @@
 # CPU Operations: Fetch-Decode-Execute
 
-**Roadmap:** Part 1 → Fundamentals → Stage 1: Hardware, CPU & Pre-Boot Environment
+**Roadmap:** Part 1 — Fundamentals → Stage 1 — Hardware, CPU & Pre-Boot Environment → CPU Operations
 
 # Section 1 — What it is and where it sits
 
