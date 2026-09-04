@@ -1,54 +1,53 @@
 # Cyber Security Notes
 
-This repository is organized as a structured learning path for cyber security, from fundamentals to offensive security practice.  
-The directory layout is designed to keep topics sequential, searchable, and easy to expand over time.
+Structured learning notes for cyber security, organized as a progressive path from technical foundations through offensive and defensive security practice.  
+Each file is written as a practice checklist — work through questions yourself, build the projects, and mark them done as you go.
 
-## Why this structure exists
+---
 
-- **Progressive learning:** Start with core concepts first, then move into practical offensive phases.
-- **Topic isolation:** Each part/stage groups related notes so revisions are focused.
-- **Scalability:** New modules can be added without breaking the overall organization.
-- **Reference-first workflow:** Files are split by subject so they can be quickly reused during study, labs, and revision.
+## Phases
 
-## Directory structure
+### Phase 1 — Foundation
+Builds the technical baseline required before any offensive or defensive work:
 
-```text
-Cyber-Security_Notes/
-├── Phase-1_Foundation/
-│   ├── Part-1_Fundamentals/
-│   ├── Part-1B_Linux-Administration/
-│   ├── Part-1C_Windows-Administration/
-│   └── Part-2_Networking/
-└── Phase-2_Offensive-Core/
-    ├── Part-4_Footprinting-and-Reconnaissance/
-    ├── Part-5_Scanning/
-    ├── Part-6_Enumeration/
-    └── Part-7_System-Hacking/
-```
+| Part | Content |
+|---|---|
+| **Part-1 Fundamentals** | Hardware, CPU, pre-boot, OS internals, memory management, data representation, wireless/physical, networking core, scripting (Python, JavaScript, Bash, PowerShell, C) |
+| **Part-1B Linux Admin** | Linux administration, command-line mastery, system configuration |
+| **Part-1C Windows Admin** | Windows administration, Active Directory, identity, Kerberos, PowerShell |
+| **Part-2 Networking** | TCP/IP, protocols, routing, DNS, packet analysis, network security |
 
-## What each phase covers
+### Phase 2 — Offensive Core
+Applies foundational knowledge to structured offensive security workflows:
 
-### Phase-1_Foundation
-Builds baseline technical knowledge required for security work:
+| Part | Content |
+|---|---|
+| **Part-4 Footprinting** | Passive and active reconnaissance, OSINT, target profiling |
+| **Part-5 Scanning** | Port scanning, service detection, vulnerability scanning |
+| **Part-6 Enumeration** | Service enumeration, directory/identity discovery, DNS, databases, attack surface mapping |
+| **Part-7 System Hacking** | Initial access, privilege escalation, persistence, lateral movement, evasion, exfiltration, reporting |
+| **Part-8 Malware** | Malware architecture, payloads, evasion, persistence, counter-forensics, weaponization |
+| **Part-9 Sniffing & Spoofing** | Passive capture, ARP/DNS spoofing, MitM attacks, defenses |
 
-- hardware, CPU, boot, OS internals, memory, and logic
-- Linux and Windows administration essentials
-- networking core and security protocols
-- scripting/programming basics used in security workflows
+### Phase 3 — Defense Core
+Covers detection, response, and security operations from a blue-team perspective:
 
-### Phase-2_Offensive-Core
-Applies foundational knowledge to offensive security workflow:
+| Part | Content |
+|---|---|
+| **Part-13A Detection & SOC** | Defensive architecture, TTP detection, hardening, EDR/XDR, SIEM, threat hunting, IR, forensics, evasion counters |
+| **Part-13B SecOps Expansion** | SOAR, DLP, vulnerability management, insider threat |
+| **Part-14 IDS/Firewall/Honeypots** | Firewall deployment, IDS/IPS, deception tech, email security, DNS security |
+| **Part-15 OSINT & Threat Intel** | Passive recon, threat intelligence analysis, automation, dissemination, operationalization |
 
-- footprinting and reconnaissance
-- target scanning
-- service and system enumeration
-- system hacking concepts and attack path understanding
+---
 
 ## Naming convention
 
-- **Phase** → high-level learning milestone
-- **Part** → domain area inside a phase
-- **Stage** → focused sub-topic progression
-- **Markdown files** → atomic notes for specific concepts/tools
+| Term | Meaning |
+|---|---|
+| **Phase** | High-level learning milestone |
+| **Part** | Domain area within a phase |
+| **Stage** | Focused sub-topic sequence within a part |
+| **Markdown file** | Practice checklist or reference for a specific concept or tool |
 
-This keeps content modular and makes it easier to track progress and revisit weak areas quickly.
+All content is written as practice questions rather than passive notes — the goal is active recall, not reading.
