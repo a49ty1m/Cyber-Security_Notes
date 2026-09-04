@@ -244,6 +244,26 @@ Use this as a learning checklist. Solve each question yourself, test edge cases,
 - [ ] Use `stream.pipeline` (instead of `.pipe`) and explain why it handles backpressure and errors more reliably.
 - [ ] Use a `Transform` stream to convert all bytes in a file to uppercase as they are piped through.
 
+### 3.6 `child_process` Module
+
+- [ ] Use `child_process.execFile` with an **array** of arguments (no shell) to run a command and capture stdout; explain why this is safe while `exec('cmd ' + userInput)` is a command-injection risk.
+- [ ] Use `child_process.spawn` to start a long-running child process, read its stdout and stderr streams line-by-line, and handle the `close` event with its exit code.
+- [ ] Use `child_process.execFileSync` for a simple synchronous command; explain when a synchronous call is acceptable (short scripts) and when it is not (servers, concurrent workloads).
+- [ ] Use `child_process.fork` to spawn a sibling Node.js process and communicate bidirectionally with `process.send()` / `process.on('message', ...)`.
+- [ ] Pass a minimal, explicit `env` object to a child process; explain why inheriting the full `process.env` wholesale can leak parent-process secrets (tokens, credentials).
+- [ ] Set `timeout` and `maxBuffer` limits on a `child_process.exec` call; explain what happens when either limit is exceeded and how to handle the resulting error.
+- [ ] Demonstrate a command-injection vulnerability by interpolating unsanitized user input into a shell string; fix it by switching to the array-argument form of `execFile`.
+
+### 3.7 `Buffer` — Binary Data
+
+- [ ] Create a `Buffer` from a UTF-8 string (`Buffer.from('hello', 'utf8')`) and from a hex string (`Buffer.from('deadbeef', 'hex')`); convert each back to a string with `.toString()` using the correct encoding.
+- [ ] Allocate a fixed-size buffer safely with `Buffer.alloc(16)` (zero-filled) and explain why `Buffer.allocUnsafe` is faster but dangerous — it may expose uninitialized memory from previous allocations.
+- [ ] Concatenate two buffers with `Buffer.concat([buf1, buf2])` and extract a sub-view with `buf.subarray(start, end)`; explain why `subarray` shares memory with the original while `Buffer.from(buf)` copies it.
+- [ ] Use `buf.readUInt32LE(offset)` and `buf.writeUInt32LE(value, offset)` to read and write a 32-bit unsigned integer in little-endian byte order at a specific offset.
+- [ ] Convert a Buffer to a Base64 string (`buf.toString('base64')`) and back (`Buffer.from(str, 'base64')`); explain when this encoding is used (embedding binary in JSON, HTTP headers, JWTs).
+- [ ] Explain the relationship between `Buffer` and `Uint8Array`; show that `Buffer` extends `Uint8Array` and can be passed to any Web Crypto API or `stream.write` call that accepts `Uint8Array`.
+- [ ] Explain why `crypto.timingSafeEqual(a, b)` must be used instead of `===` or `Buffer.compare` when validating secrets, tokens, or HMACs — and what a timing attack looks like in practice.
+
 ---
 
 ## 4. Mini Projects (Fundamentals)
@@ -301,6 +321,19 @@ Use this as a learning checklist. Solve each question yourself, test edge cases,
 - [ ] Explain how SSE differs from WebSockets in terms of directionality, protocol, reconnection, and use cases.
 - [ ] Describe the security concern of SSE endpoints that do not validate the `Origin` or `Authorization` headers before streaming data.
 
+### 5.5 `XMLHttpRequest` (XHR) — Legacy Async HTTP
+
+> Although `fetch` has largely replaced XHR in modern code, XHR remains widespread in legacy codebases and is a significant attack surface. Reading older source code and understanding CSRF and CORS mechanics requires fluency with XHR's API.
+
+- [ ] Create an `XMLHttpRequest`, open a GET request with `xhr.open('GET', url)`, listen for `onload` and `onerror`, send it with `xhr.send()`, and log `xhr.status` and `xhr.responseText`.
+- [ ] Send a POST request with XHR: set `Content-Type: application/json` via `xhr.setRequestHeader`, pass a JSON body to `xhr.send(JSON.stringify(data))`, and handle the response.
+- [ ] Explain the XHR `readyState` lifecycle: `UNSENT (0)`, `OPENED (1)`, `HEADERS_RECEIVED (2)`, `LOADING (3)`, `DONE (4)`; log a message at each state change using `onreadystatechange`.
+- [ ] Use `xhr.setRequestHeader()` to set custom headers; explain which headers are forbidden by the browser (e.g., `Host`, `Cookie`) and why the browser enforces this.
+- [ ] Use `xhr.abort()` to cancel an in-flight request and handle the `onabort` event; explain the use case (user navigates away, timeout imposed by the caller).
+- [ ] Set `xhr.withCredentials = true` for a cross-origin request; explain the three CORS response headers the server must return to allow credentialed cross-origin XHR.
+- [ ] Compare XHR with `fetch`: contrast error detection (`status` vs `response.ok`), streaming, Promise vs callback model, abort signal support, and upload progress events.
+- [ ] Explain how XHR's CORS preflight is triggered: which method, header, or `withCredentials` combination causes the browser to send an `OPTIONS` request before the real one.
+
 ---
 
 ## 6. DOM Manipulation
@@ -330,6 +363,41 @@ Use this as a learning checklist. Solve each question yourself, test edge cases,
 - [ ] Use `subtree: true` to monitor all descendants of a container and explain the performance implications of broad observation.
 - [ ] Disconnect an observer at the right time and explain why failing to disconnect can cause memory leaks.
 - [ ] Use `MutationObserver` in a security context: detect when a script or iframe is dynamically injected into the DOM and log a warning.
+
+### 6.4 Browser Storage — IndexedDB & Cache Storage API
+
+#### IndexedDB
+
+> IndexedDB is a transactional, key-value object database built into the browser. It is the only client-side storage mechanism designed for large, structured datasets — it survives `localStorage.clear()` and is accessible from Service Workers.
+
+- [ ] Open an IndexedDB database with `indexedDB.open('myDB', 1)`, create an object store inside `onupgradeneeded`, and handle both `onsuccess` and `onerror` events.
+- [ ] Add a record using a readwrite transaction (`db.transaction('store', 'readwrite').objectStore('store').add(record)`) and retrieve it by key using a readonly transaction.
+- [ ] Use an index to query records by a non-key field with `index.get(value)`; explain when an index is necessary vs. a full cursor scan.
+- [ ] Iterate all records in an object store using an `IDBCursor`; explain how cursors stream results instead of loading everything into memory at once.
+- [ ] Delete a specific record by key and explain how to clear an entire object store without deleting the database.
+- [ ] Explain the security model of IndexedDB: same-origin isolation, read/write access from Service Workers, and why data here survives `localStorage.clear()` and cache eviction.
+- [ ] Demonstrate that XSS can read IndexedDB: write a payload that opens the database, iterates all object stores, and exfiltrates the records to an attacker-controlled endpoint.
+
+#### Cache Storage API
+
+> The Cache Storage API (part of the Service Worker specification) stores HTTP request/response pairs. It powers offline-first apps and is the mechanism through which a compromised Service Worker can serve poisoned responses indefinitely.
+
+- [ ] Open a named cache with `caches.open('v1')`, store a `Response` with `cache.put(request, response)`, and retrieve it with `caches.match(request)`.
+- [ ] List all cached URLs in a named cache using `cache.keys()` and delete a specific entry with `cache.delete(request)`; enumerate all named caches with `caches.keys()`.
+- [ ] Explain the difference between Cache Storage and the HTTP browser cache: who controls each, how entries are evicted, and how a `Cache-Control` header interacts with both.
+- [ ] Explain the security risk of a malicious or compromised Service Worker intercepting `fetch` events and returning poisoned cached responses — and why this persists after the original XSS is patched.
+- [ ] Audit Cache Storage contents via DevTools (Application → Cache Storage); explain how an attacker could use DevTools or an injected script to enumerate and exfiltrate cached responses.
+
+### 6.5 Browser Rendering Pipeline (Awareness)
+
+> The rendering pipeline is the sequence of steps from receiving HTML bytes to painting pixels. Security testers need this model to reason about DOM-based injection timing, layout-based side channels, and why certain XSS payloads fire before others.
+
+- [ ] Describe the rendering pipeline in order: **Bytes → Characters → Tokens → DOM tree → CSSOM tree → Render tree → Layout → Paint → Composite**; explain what happens at each stage.
+- [ ] Explain what happens when JavaScript modifies the DOM mid-parse: why `document.write` blocks the HTML parser and why it is both a performance problem and a security concern (XSS via parser-inserted scripts).
+- [ ] Explain the difference between **reflow** (layout recalculation) and **repaint**; give one DOM change that triggers each; explain why repeated forced reflows can be a denial-of-service concern in long-running client-side code.
+- [ ] Describe the critical rendering path: explain how a `<script>` tag placed before content blocks rendering, and how `defer` vs `async` changes when a script executes relative to DOM parsing.
+- [ ] Explain how dynamically injected `<script>` tags interact with CSP `nonce` checks — and why a `nonce` applied only to inline scripts does not protect against script injection via `src` unless `script-src` also restricts external origins.
+- [ ] Use the DevTools **Performance** panel to record a page load; identify the `DOMContentLoaded` and `load` events on the timeline and locate a long task that blocks the main thread.
 
 ---
 
@@ -492,6 +560,17 @@ Use this as a learning checklist. Solve each question yourself, test edge cases,
 - [ ] Explain why WebSocket connections are not protected by CORS; describe the `Origin` header check that servers must perform.
 - [ ] Demonstrate a Cross-Site WebSocket Hijacking (CSWSH) attack scenario.
 
+### 10.10 Client-Side Request Smuggling (Awareness)
+
+> Client-side request smuggling (CSRS) exploits browser HTTP/1.1 connection reuse or `fetch`/XHR ambiguity to desync a shared connection and inject requests into another user's session. It is a distinct, emerging class of attack separate from server-side HTTP request smuggling.
+
+- [ ] Explain the concept of client-side request smuggling at an awareness level: how a malicious page can use `fetch` or XHR to inject a partial HTTP request into a keep-alive connection shared with a victim, causing the victim's subsequent request to be interpreted differently by a reverse proxy or CDN.
+- [ ] Distinguish client-side request smuggling from server-side HTTP request smuggling (CL.TE / TE.CL): explain that CSRS is triggered by a browser-side script rather than a malformed server-to-server request.
+- [ ] Identify browser behaviors that enable CSRS: connection reuse for same-origin requests, `fetch` with `keepalive: true`, and HTTP/1.1 pipelining semantics.
+- [ ] Describe one real-world CSRS scenario (e.g., poisoning a shared CDN connection to capture a victim's credentials) without attempting to reproduce it against any system you do not own.
+- [ ] List the infrastructure conditions that make an application vulnerable: HTTP/1.1 keep-alive between browser and front-end proxy, a proxy that forwards raw bytes without re-parsing, and shared connection pools.
+- [ ] Describe three mitigations a server or CDN operator can apply: enforcing HTTP/2 end-to-end, disabling connection reuse across users, and strict request-length validation at every hop.
+
 ---
 
 ## 11. Automation Projects
@@ -533,6 +612,15 @@ Use this as a learning checklist. Solve each question yourself, test edge cases,
 - [ ] Build a CSP analyzer that fetches a URL, parses each directive, flags dangerous values, and rates the overall policy strength.
 - [ ] Add a `--json` flag to both tools to export results for integration into a larger pentest report.
 
+### 11.7 Link & Route Discovery Tool
+
+- [ ] Build a tool that fetches a page (with `fetch` or Puppeteer), extracts every `href`, `src`, `action`, and `data-*` attribute value, resolves relative URLs against the page base with `new URL(relative, base)`, and deduplicates the full URL set.
+- [ ] Extend the tool to extract route strings from downloaded JavaScript files: search for patterns matching `app.get('/path')`, `router.post('/endpoint')`, React Router `<Route path="...">`, and Next.js file-based route conventions.
+- [ ] Filter all extracted URLs to same-origin results only; flag any discovered cross-origin links separately for review.
+- [ ] Parse a `sitemap.xml` file using `DOMParser` or a lightweight XML parser and extract all `<loc>` entries as an additional route discovery source.
+- [ ] Output a sorted, deduplicated report that includes each discovered path, its source type (HTML attribute / JS route definition / sitemap), and HTTP method where determinable.
+- [ ] Add a `--json` flag that exports the report as structured JSON, and a `--depth N` flag that limits recursive link-following to N hops from the seed URL.
+
 ---
 
 ## 12. Modern Framework Awareness
@@ -542,6 +630,7 @@ Use this as a learning checklist. Solve each question yourself, test edge cases,
 - [ ] Explain Vue's `v-html` directive and why it bypasses Vue's automatic escaping; describe when it is safe to use.
 - [ ] Describe how Svelte compiles templates and identify `{@html}` as the unsafe escape hatch.
 - [ ] Explain how Next.js server-side rendering changes the attack surface compared to a pure client-side SPA.
+- [ ] Explain how Nuxt.js (the Vue meta-framework) mirrors Next.js in SSR architecture; describe how `useFetch` / `useAsyncData` data-fetching patterns and server routes differ from a pure client-side Vue SPA, and what new attack surface each introduces.
 - [ ] Describe the Electron security model: explain context isolation, `nodeIntegration`, `contextBridge`, and why disabling context isolation creates RCE from XSS.
 - [ ] Research one real-world CVE for each of the above frameworks and summarize the root cause and patch in one paragraph each.
 
@@ -559,12 +648,17 @@ Use this as a learning checklist. Solve each question yourself, test edge cases,
 
 ## 14. Code Quality
 
-### 14.1 Debugging with Chrome DevTools
+### 14.1 Debugging with Chrome DevTools & Node.js Inspector
 
 - [ ] Set a breakpoint in the Sources panel, step through code, and inspect variable values — avoid relying on `console.log` debugging.
 - [ ] Use the Network panel to inspect a `fetch` request: examine request headers, response headers, response body, and timing.
 - [ ] Use the Application panel to read cookies, `localStorage`, `sessionStorage`, and Service Worker registrations.
 - [ ] Profile a slow function with the Performance panel; identify the most time-consuming call and describe a fix.
+- [ ] Launch a Node.js script with `node --inspect-brk index.js`; open `chrome://inspect` in Chrome, attach to the process, and step through the code using the same DevTools Sources panel.
+- [ ] Use `node --inspect` (without `--brk`) to attach mid-execution to a running server; set a breakpoint on a route handler and trigger it with a `curl` request.
+- [ ] Use the Node.js Inspector's **Memory** tab to take a heap snapshot, identify the largest object groups, and explain how to spot a memory leak.
+- [ ] Explain the difference between `--inspect` (attach any time) and `--inspect-brk` (pause before the first line); describe when each is the right choice.
+- [ ] Configure VS Code to launch a Node.js script with the debugger attached by writing a `.vscode/launch.json`; use conditional breakpoints and log points instead of temporary `console.log` statements.
 
 ### 14.2 ESLint & Prettier
 

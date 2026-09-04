@@ -265,7 +265,7 @@ Use this as a learning checklist. Solve each question yourself, test edge cases,
 - [ ] Redact an API token or password from a log line using `re.sub`.
 - [ ] Explain catastrophic backtracking and rewrite a vulnerable pattern safely.
 
-### 2.11 `json`, `csv`, `xml`, and `yaml`
+### 2.11 `json`, `csv`, `xml`, `lxml`, and `yaml`
 
 - [ ] Use `json.load`, `json.dump`, `json.loads`, and `json.dumps` to read, modify, and write a JSON configuration file.
 - [ ] Validate that a JSON configuration has all required keys and correct value types before using it.
@@ -276,6 +276,20 @@ Use this as a learning checklist. Solve each question yourself, test edge cases,
 - [ ] Explain why untrusted XML should be parsed with defenses against XML bomb and XXE attacks.
 - [ ] Load YAML configuration with `yaml.safe_load`, validate expected fields, and explain why `yaml.load` without a `Loader` is dangerous.
 - [ ] Build a file-normalization utility that reads CSV, JSON, XML, or YAML and produces one validated JSON output format.
+
+#### `lxml` — Fast XML/HTML Parsing (Third-Party)
+
+> `lxml` is a third-party library (`pip install lxml`) built on libxml2/libxslt. It is significantly faster than `xml.etree.ElementTree` for large documents and adds full XPath and CSS selector support. It is also the engine BeautifulSoup uses when you pass `features="lxml"`.
+
+- [ ] Install `lxml` and explain how it differs from the stdlib `xml.etree.ElementTree` in speed, API surface, XPath support, and security defaults.
+- [ ] Parse a local XML file with `lxml.etree.parse()` and iterate over elements using `getroot()`, `iter()`, and `findall()`.
+- [ ] Use a full XPath expression (`//tag[@attribute='value']`) with `element.xpath()` to extract deeply nested elements — something `xml.etree.ElementTree` cannot do natively.
+- [ ] Use `lxml.html.fromstring()` to parse a saved HTML file and extract links, headings, and table rows.
+- [ ] Use CSS selectors via `lxml.cssselect` (or `element.cssselect()`) to select elements the same way a browser stylesheet engine would.
+- [ ] Serialize a modified `lxml` element tree back to a UTF-8 file with `etree.tostring(root, pretty_print=True, encoding="unicode")`.
+- [ ] Enable `lxml`'s safe parser (`etree.XMLParser(resolve_entities=False, no_network=True)`) and explain how it defends against XXE and billion-laughs attacks.
+- [ ] Compare `lxml.etree` and `xml.etree.ElementTree` side-by-side on the same document: API differences, XPath capability, and performance on a large file.
+- [ ] Explain when to prefer `lxml` over `xml.etree.ElementTree` and when the stdlib module is sufficient.
 
 ### 2.12 `typing` Module
 
