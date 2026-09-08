@@ -32,10 +32,9 @@ Applies foundational knowledge to structured host and network offensive security
 | **Part-31 Password Cracking** | Cryptographic hash identification, John the Ripper, Hashcat rule engines, wordlist curation |
 | **Part-7 System Hacking** | Initial access, Linux/Windows privilege escalation (9 vectors, Potato family), pivoting (Chisel/Ligolo-ng) |
 | **Part-8 Malware & Weaponization** | Architecture, execution mechanisms, evasion, counter-forensics (conceptual overview) |
-| **Part-9 Sniffing & Spoofing** | Passive packet capture, ARP cache poisoning, DNS spoofing, traffic interception |
+| **Part-9 Sniffing & Spoofing** | Passive packet capture, ARP cache poisoning, DNS spoofing, traffic interception & MITM analysis |
 | **Part-10 Social Engineering** | OSINT profiling, digital pretexts, physical security assessment, phishing analysis |
 | **Part-11 Denial of Service** | Network availability, Layer 4/7 mechanisms, SYN cookies, Anycast, and DDoS mitigation |
-| **Part-12 Network Interception** | Network-layer session sniffing, TCP RST injection, MITM packet manipulation |
 
 ### Phase 3 — Defense Core
 Covers detection engineering, security operations, and incident response:
