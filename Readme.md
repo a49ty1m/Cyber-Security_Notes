@@ -1,129 +1,158 @@
-# Cyber Security Notes
+# 🛡️ Cyber Security Notes
 
-Structured learning notes for cyber security, organized as a progressive path from technical foundations through offensive and defensive security practice.  
-Each file is written as a practice checklist — work through questions yourself, build the projects, and mark them done as you go.
+Structured learning notes and hands-on laboratory documentation for offensive and defensive security operations.  
+Organized into **5 linear execution stages (Modules 01–30)** plus a post-hire **Shelf**, matching the Master Roadmap.
 
----
-
-## Phases
-
-### Phase 1 — Foundation
-Builds the technical baseline required before any offensive or defensive work:
-
-| Part | Content |
-|---|---|
-| **Part-1 Fundamentals** | Hardware, CPU, pre-boot, OS internals, memory management, data representation, wireless/physical, networking core, scripting (Python, JavaScript, Bash, PowerShell, C) |
-| **Part-1B Linux Admin** | Linux administration, command-line mastery, system configuration |
-| **Part-1C Windows Admin** | Windows administration, Active Directory, identity, Kerberos, PowerShell |
-| **Part-2 Networking** | TCP/IP, protocols, routing, DNS, packet analysis, network security |
-| **Part-3 Cryptography** | Applied cryptography, PKI, digital signatures, hashing, LUKS, post-quantum |
-| **Part-3B Authentication Primer** | Sessions, JWTs, OAuth 2.0, OpenID Connect (OIDC), SAML, and MFA mechanics |
-| **Part-3C Web Tech Fundamentals** | HTTP request/response architecture, browser security model, SOP, CORS, REST APIs |
-
-### Phase 2 — Offensive Core
-Applies foundational knowledge to structured host and network offensive security workflows:
-
-| Part | Content |
-|---|---|
-| **Part-4 Footprinting** | Passive and active reconnaissance, OSINT, target profiling, infrastructure mapping |
-| **Part-5 Scanning** | Port scanning, service detection, vulnerability scanning, NSE scripting |
-| **Part-6 Enumeration** | Service enumeration (SMB, RPC, NFS, SNMP, LDAP), directory and attack surface mapping |
-| **Part-6B Database Security** | SQL injection enumeration, relational and NoSQL database exploitation, auditing |
-| **Part-31 Password Cracking** | Cryptographic hash identification, John the Ripper, Hashcat rule engines, wordlist curation |
-| **Part-7 System Hacking** | Initial access, Linux/Windows privilege escalation (9 vectors, Potato family), pivoting (Chisel/Ligolo-ng) |
-| **Part-8 Malware & Weaponization** | Architecture, execution mechanisms, evasion, counter-forensics (conceptual overview) |
-| **Part-9 Sniffing & Spoofing** | Passive packet capture, ARP cache poisoning, DNS spoofing, traffic interception & MITM analysis |
-| **Part-10 Social Engineering** | OSINT profiling, digital pretexts, physical security assessment, phishing analysis |
-| **Part-11 Denial of Service** | Network availability, Layer 4/7 mechanisms, SYN cookies, Anycast, and DDoS mitigation |
-
-### Phase 3 — Defense Core
-Covers detection engineering, security operations, and incident response:
-
-| Part | Content |
-|---|---|
-| **Part-13A Detection & SOC** | Defensive architecture, TTP detection, hardening, EDR/XDR, SIEM, threat hunting, IR, forensics |
-| **Part-13B SecOps Expansion** | SOAR automation, DLP fundamentals, vulnerability management programs, insider threat detection |
-| **Part-14 IDS/Firewall/Honeypots** | Firewall deployment, Snort/Suricata IDS/IPS, deception traps, email & DNS security |
-| **Part-15 CTI & Attack Surface** | External attack surface management (EASM), threat actor profiling, STIX/TAXII, MISP & OpenCTI |
-
-### Phase 4 — Web & Application Security
-Full-stack web application penetration testing, API auditing, and bug bounty hunting:
-
-| Part | Content |
-|---|---|
-| **Part-17 Web App Hacking** | OWASP Top 10, SQLi, XSS, SSRF, IDOR, authorization bypass, SSTI, Deserialization |
-| **Part-12 Session Hijacking** | Cookie security attributes, session fixation, token forgery, JWT attacks (`jwt-tool`), CSRF |
-| **Part-18 Web Server Hacking** | Web server architecture, configuration reviews, directory discovery, vhost fuzzing |
-| **Part-19 API Security** | REST & GraphQL security, single-packet race conditions (Turbo Intruder), cloud SSRF (IMDSv2) |
-| **Part-20 Bug Bounty Methodology** | Mass external asset discovery, parameter fuzzing, triage, PoC drafting, and report writing |
-
-### Phase 5 — Wireless & Mobile Security [POST-HIRE]
-Radio frequency, physical wireless protocols, and mobile client exploitation:
-
-| Part | Content |
-|---|---|
-| **Part-21 Wireless Pentesting** | 802.11 a/b/g/n/ac/ax, WPA2/WPA3 enterprise, BLE, Zigbee, NFC/RFID, and SDR analysis |
-| **Part-22 Mobile Platform Pentesting** | Android & iOS architecture, APK reverse engineering, Frida hooking, Objection runtime bypass |
-
-### Phase 6 — Enterprise Infrastructure & Active Directory
-Enterprise domain dominance, cloud security, and container environments:
-
-| Part | Content |
-|---|---|
-| **Part-23 Active Directory** | Kerberos exploitation (Kerberoasting, AS-REP), ADCS certificate abuse (ESC1–ESC13), DCSync |
-| **Part-24 Cloud Security & IAM** | AWS/Azure IAM privilege escalation, AssumeRole chaining, CIEM, OIDC federation |
-| **Part-25 Container Security** | Dockerfile hardening, `--privileged` breakouts, cgroups, `/var/run/docker.sock`, K8s RBAC |
-| **Part-16 Adversary Emulation** | MITRE ATT&CK mapping, Atomic Red Team execution, purple team detection measurement |
-| **Part-26 OT/ICS/SCADA** | Modbus, DNP3, PLC/HMI exploitation, safety systems, and industrial network isolation |
-
-### Phase 7 — Advanced Offensive Security & Binary Exploitation
-Low-level reverse engineering, systems programming, and modern exploit development:
-
-| Part | Content |
-|---|---|
-| **Part-42 Offensive Development** | Win32 API, PE loaders, shellcode execution, NTDLL unhooking, direct syscalls (`Syswhispers3`) |
-| **Part-27 Digital Forensics** | Memory extraction (Volatility 3), timeline creation (Plaso), filesystem forensics (Autopsy) |
-| **Part-28 Reverse Engineering** | Static/dynamic analysis (Ghidra, x64dbg), anti-analysis tricks, unpackers, malware triage |
-| **Part-29 Modern Exploitation** | Linux x86-64 stack exploitation, ROP chaining, ASLR/DEP/Canary bypass, kernel debug (WinDbg) |
-| **Part-30 Hardware Hacking** | UART/JTAG pinout extraction, firmware extraction/analysis, side-channel attacks |
-| **Part-32 Physical Pentesting** | Lock picking, access control bypass, HID badge cloning, rogue drop-box implants |
-
-### Phase 8 — Security Engineering & DevSecOps
-Governance, secure systems architecture, and pipeline defense:
-
-| Part | Content |
-|---|---|
-| **Part-35 GRC** | NIST CSF 2.0, ISO 27001, SOC 2, risk quantification (FAIR), compliance audit workflows |
-| **Part-36 Supply Chain Security** | Software Bill of Materials (SBOM), dependency confusion, typosquatting, package integrity |
-| **Part-37 DevSecOps** | SAST, DAST, SCA, secrets scanning, Poison Pipeline Execution (D-PPE, I-PPE) in GitHub Actions |
-| **Part-37B Secure Code Review** | Manual code review, sink-to-source tracing, custom Semgrep rule authoring |
-| **Part-43 Security Architecture** | Zero Trust Architecture, network segmentation, enterprise cryptographic key management |
-
-### Phase 9 — AI Security & Red Teaming
-Security of machine learning pipelines, LLMs, and autonomous AI agents:
-
-| Part | Content |
-|---|---|
-| **Part-38 AI & LLM Security** | Prompt injection (direct/indirect), jailbreaking, RAG poisoning, model extraction, Garak/PyRIT |
-
-### Phase 10 — Operations & Career
-Commercial deliverable production, adversary campaign simulation, and professional proof of work:
-
-| Part | Content |
-|---|---|
-| **Part-39 Pentest Methodologies** | PTES, NIST 800-115, CVSS v3.1/v4.0 scoring, professional report architecture, executive debriefs |
-| **Part-40 Red Team Operations** | C2 infrastructure (Sliver, Mythic), redirector setups, OPSEC discipline, campaign deconfliction |
-| **Part-41 Proof of Work & Portfolio** | Curated GitHub profiles, reproducible technical writeups, bug bounty validations, interview prep |
+Each module directory contains practice checklists, tool commands, lab output, network captures, and structured markdown summaries.
 
 ---
 
-## Naming convention
+## 📑 Stages Overview
 
-| Term | Meaning |
-|---|---|
-| **Phase** | High-level learning milestone |
-| **Part** | Domain area within a phase |
-| **Stage** | Focused sub-topic sequence within a part |
-| **Markdown file** | Practice checklist or reference for a specific concept or tool |
+| Stage | Focus Area | Modules | Status |
+|:-----:|------------|:-------:|:------:|
+| **[Stage 1](#stage-1--foundation)** | System Internals, Networking, Crypto, Auth, Web | 01–07 | 🟡 Substantially Complete |
+| **[Stage 2](#stage-2--offense-i)** | Host Recon, Scanning, Enumeration, Cracking, Initial Access | 08–13 | 🟢 Active Focus |
+| **[Stage 3](#stage-3--web--application-security)** | Full-Stack Web Pentesting, APIs, JWTs, Bug Bounty, Defense Side-Track | 14–18 | ⚪ Pending |
+| **[Stage 4](#stage-4--enterprise-infrastructure--identity)** | Active Directory, Cloud IAM, Containers, Adversary Emulation, Reporting | 19–26 | ⚪ Pending |
+| **[Stage 5](#stage-5--advanced--specialized-operations)** | Custom C2 Development, Binary Exploitation, AI Red Teaming, Portfolio | 27–30 | ⚪ Pending |
+| **[Shelf](#-shelf--post-hire--elective-specializations)** | Specialized & Post-Hire Tracks (Wireless, Mobile, Forensics, GRC, etc.) | S01–S17 | 📦 Off-Sequence |
 
-All content is written as practice questions rather than passive notes — the goal is active recall, not reading.
+---
+
+### Stage 1 — Foundation
+*Core engineering baselines required before offensive engagement.*
+
+| Module | Directory | Key Focus |
+|---|---|---|
+| **01** | [Module-01_Fundamentals](Stage-1_Foundation/Module-01_Fundamentals/) | Hardware, CPU execution, OS internals, memory, data representation, basic scripting |
+| **02** | [Module-02_Linux-Administration](Stage-1_Foundation/Module-02_Linux-Administration/) | Linux CLI mastery, permissions, process control, networking, services, system hardening |
+| **03** | [Module-03_Windows-Administration](Stage-1_Foundation/Module-03_Windows-Administration/) | Windows management, Event Viewer, PowerShell, registry, Kerberos prerequisites |
+| **04** | [Module-04_Networking](Stage-1_Foundation/Module-04_Networking/) | TCP/IP stack, routing, switching, DNS, Wireshark packet dissection, protocol analysis |
+| **05** | [Module-05_Cryptography](Stage-1_Foundation/Module-05_Cryptography/) | Applied crypto, hashing, symmetric/asymmetric ciphers, TLS handshake, PKI |
+| **06** | [Module-06_Authentication-Standards](Stage-1_Foundation/Module-06_Authentication-Standards/) | Sessions, JWTs, OAuth 2.0, OpenID Connect (OIDC), SAML, and MFA mechanics |
+| **07** | [Module-07_Web-Technology-Fundamentals](Stage-1_Foundation/Module-07_Web-Technology-Fundamentals/) | HTTP/1.1 & HTTP/2, cookies, SOP, CORS, REST APIs, JSON data structures |
+
+> **🏁 Exit Gate:** [Foundation Proof Gate](../Cyber-Security/Roadmap/Stage-1_Foundation.md#foundation-proof-gate) *(10 PCAPs, admin baselines, 3 automation scripts, lab topology report)*
+
+---
+
+### Stage 2 — Offense I
+*Host reconnaissance, port scanning, service enumeration, credential acquisition, and initial shells.*
+
+| Module | Directory | Key Focus |
+|---|---|---|
+| **08** | [Module-08_Footprinting-and-Reconnaissance](Stage-2_Offense-I/Module-08_Footprinting-and-Reconnaissance/) | Passive & active recon, OSINT, ASN profiling, DNS enumeration, TLS analysis |
+| **09** | [Module-09_Scanning](Stage-2_Offense-I/Module-09_Scanning/) | Nmap scan techniques, timing templates, service fingerprinting, NSE scripting |
+| **10** | [Module-10_Enumeration](Stage-2_Offense-I/Module-10_Enumeration/) | Service interrogation (SMB, RPC, NFS, SNMP, LDAP), directory busting (`ffuf`) |
+| **11** | [Module-11_Database-Security](Stage-2_Offense-I/Module-11_Database-Security/) | SQLi enumeration, database privilege escalation, relational & NoSQL auditing |
+| **12** | [Module-12_Password-Cracking](Stage-2_Offense-I/Module-12_Password-Cracking/) | Cryptographic hash identification, John the Ripper, Hashcat rule engines, wordlists |
+| **13** | [Module-13_System-Hacking](Stage-2_Offense-I/Module-13_System-Hacking/) | Initial access, Linux/Windows privesc (SUID, Potato exploits), pivoting (`Ligolo-ng`) |
+
+> **🏁 Exit Gate:** [Stage Gate 1](../Cyber-Security/Roadmap/Stage-2_Offense-I.md#stage-gate-1) *(Root a box cold, dump & crack hashes, demonstrate Linux & Windows privesc)*
+
+---
+
+### Stage 3 — Web & Application Security
+*Full-stack web application penetration testing, API auditing, and bug bounty workflows.*
+
+| Module | Directory | Key Focus |
+|---|---|---|
+| **14** | [Module-14_Web-Application-Hacking](Stage-3_Web-and-App-Sec/Module-14_Web-Application-Hacking/) | OWASP Top 10, SQLi, XSS, SSRF, IDOR, SSTI, Deserialization, race conditions |
+| **15** | [Module-15_Session-Hijacking](Stage-3_Web-and-App-Sec/Module-15_Session-Hijacking/) | Session fixation, cookie hijacking, JWT forgery (`jwt-tool`), CSRF tokens |
+| **16** | [Module-16_Web-Server-Hacking](Stage-3_Web-and-App-Sec/Module-16_Web-Server-Hacking/) | Web server misconfigurations, virtual hosts, directory traversal, HTTP smuggling |
+| **17** | [Module-17_API-Security](Stage-3_Web-and-App-Sec/Module-17_API-Security/) | OWASP API Top 10, REST, GraphQL introspection, gRPC, cloud metadata SSRF |
+| **18** | [Module-18_Bug-Bounty-Methodology](Stage-3_Web-and-App-Sec/Module-18_Bug-Bounty-Methodology/) | Mass attack surface discovery, parameter fuzzing, triage, PoC authoring |
+| **Side-Track** | [Side-Track_Defense-Awareness](Stage-3_Web-and-App-Sec/Side-Track_Defense-Awareness/) | Detection Engineering (SIEM/Sigma), IDS/Firewalls (Snort/Suricata), CTI/OSINT |
+
+> **🏁 Exit Gate:** [Stage Gate 2](../Cyber-Security/Roadmap/Stage-3_Web-and-App-Sec.md#stage-gate-2) *(3+ HTB writeups, OWASP practitioner labs, manual Burp exploit delivery)*
+
+---
+
+### Stage 4 — Enterprise Infrastructure & Identity
+*Enterprise domain domination, cloud security posture, container breakout, and professional reporting.*
+
+| Module | Directory | Key Focus |
+|---|---|---|
+| **19** | [Module-19_Active-Directory](Stage-4_Enterprise/Module-19_Active-Directory/) | Kerberos (Kerberoasting, AS-REP), ADCS abuse (ESC1–ESC13), BloodHound, DCSync |
+| **20** | [Module-20_Cloud-Security](Stage-4_Enterprise/Module-20_Cloud-Security/) | AWS/Azure IAM privilege escalation, role assumption chaining, CIEM, metadata abuse |
+| **21** | [Module-21_Container-Security](Stage-4_Enterprise/Module-21_Container-Security/) | Docker socket breakouts, `--privileged` escape, cgroups, Kubernetes RBAC auditing |
+| **22** | [Module-22_Adversary-Emulation](Stage-4_Enterprise/Module-22_Adversary-Emulation/) | MITRE ATT&CK mapping, Atomic Red Team execution, purple team metric evaluation |
+| **23** | [Module-23_Sniffing-and-Spoofing](Stage-4_Enterprise/Module-23_Sniffing-and-Spoofing/) | ARP poisoning, DNS spoofing, traffic manipulation, Responder, Bettercap |
+| **24** | [Module-24_Social-Engineering](Stage-4_Enterprise/Module-24_Social-Engineering/) | Phishing infrastructure, pretexts, credential harvesting, physical assessments |
+| **25** | [Module-25_Malware-Architecture](Stage-4_Enterprise/Module-25_Malware-Architecture/) | Architectural patterns, execution primitives, payload delivery, evasion concepts |
+| **26** | [Module-26_Pentest-Reporting](Stage-4_Enterprise/Module-26_Pentest-Reporting/) | PTES/CVSS standards, executive debriefs, technical remediation documentation |
+
+> **🏁 Exit Gate:** [Stage Gate 3](../Cyber-Security/Roadmap/Stage-4_Enterprise.md#stage-gate-3) *(Multi-forest AD compromise, BloodHound attack path, commercial pentest report)*
+
+---
+
+### Stage 5 — Advanced & Specialized Operations
+*Offensive development, AI red teaming, adversary campaign operations, and portfolio validation.*
+
+| Module | Directory | Key Focus |
+|---|---|---|
+| **27** | [Module-27_Offensive-Development](Stage-5_Specialized/Module-27_Offensive-Development/) | Win32 API, PE loaders, shellcode injection, NTDLL unhooking, AMSI/ETW bypass |
+| **28** | [Module-28_AI-Red-Teaming](Stage-5_Specialized/Module-28_AI-Red-Teaming/) | LLM prompt injection, jailbreaking, RAG poisoning, model extraction, PyRIT/Garak |
+| **29** | [Module-29_Red-Team-Operations](Stage-5_Specialized/Module-29_Red-Team-Operations/) | Multi-tier C2 infrastructure (Sliver/Mythic), redirectors, OPSEC, campaign management |
+| **30** | [Module-30_Portfolio](Stage-5_Specialized/Module-30_Portfolio/) | Public security research, tool publishing, verified writeups, interview defense |
+
+> **🏁 Final Gate:** [Mastery Capstone](../Cyber-Security/Roadmap/Stage-5_Specialized.md#final-gate) *(Custom C2 implant, published original AI exploit research, OSCP certification)*
+
+---
+
+### 📦 Shelf — Post-Hire & Elective Specializations
+*Specialized and compliance tracks reserved for post-employment study.*
+
+All post-hire notes live in [`Shelf_Post-Hire/`](Shelf_Post-Hire/):
+- **S01–S02:** Wireless & Mobile Platform Pentesting
+- **S03:** OT / ICS / SCADA Security
+- **S04–S06:** Digital Forensics, Reverse Engineering & Modern Binary Exploitation
+- **S07–S10:** Hardware Hacking, Physical Pentesting, Telecom (VoIP/5G), Blockchain
+- **S11–S15:** GRC (ISO 27001/SOC 2), Supply Chain, DevSecOps, Secure Code Review, Security Architecture
+- **S16–S17:** Security Operations Expansion & DoS Resilience
+
+---
+
+## 📁 Repository Directory Hierarchy
+
+```text
+Cyber-Security_Notes/
+├── Stage-1_Foundation/
+│   ├── Module-01_Fundamentals/
+│   ├── Module-02_Linux-Administration/
+│   ├── Module-03_Windows-Administration/
+│   ├── Module-04_Networking/
+│   ├── Module-05_Cryptography/
+│   ├── Module-06_Authentication-Standards/
+│   └── Module-07_Web-Technology-Fundamentals/
+├── Stage-2_Offense-I/
+│   ├── Module-08_Footprinting-and-Reconnaissance/
+│   ├── Module-09_Scanning/
+│   ├── Module-10_Enumeration/
+│   ├── Module-11_Database-Security/
+│   ├── Module-12_Password-Cracking/
+│   └── Module-13_System-Hacking/
+├── Stage-3_Web-and-App-Sec/
+│   ├── Module-14_Web-Application-Hacking/
+│   ├── Module-15_Session-Hijacking/
+│   ├── Module-16_Web-Server-Hacking/
+│   ├── Module-17_API-Security/
+│   ├── Module-18_Bug-Bounty-Methodology/
+│   └── Side-Track_Defense-Awareness/
+├── Stage-4_Enterprise/
+│   ├── Module-19_Active-Directory/
+│   ├── Module-20_Cloud-Security/
+│   ├── Module-21_Container-Security/
+│   ├── Module-22_Adversary-Emulation/
+│   ├── Module-23_Sniffing-and-Spoofing/
+│   ├── Module-24_Social-Engineering/
+│   ├── Module-25_Malware-Architecture/
+│   └── Module-26_Pentest-Reporting/
+├── Stage-5_Specialized/
+│   ├── Module-27_Offensive-Development/
+│   ├── Module-28_AI-Red-Teaming/
+│   ├── Module-29_Red-Team-Operations/
+│   └── Module-30_Portfolio/
+└── Shelf_Post-Hire/
+```
